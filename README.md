@@ -1,0 +1,2 @@
+vdr-plugin-squeezebox
+=====================
