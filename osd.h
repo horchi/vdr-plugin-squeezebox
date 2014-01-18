@@ -62,6 +62,7 @@ class cSqueezeOsd : public cThread
       int forceNextDraw;
       int loopActive;
       int plCurrent;
+      int plUserAction;
       int plTop;
       time_t lastScrollAt;
 

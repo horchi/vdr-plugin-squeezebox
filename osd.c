@@ -29,6 +29,7 @@ cSqueezeOsd::cSqueezeOsd()
    border = 10;
    plTop = 0;
    plCurrent = 0;              // current user selected item, or current track (if no user action)
+   plUserAction = no;          // indicates that user scrolling the list
    lastScrollAt = time(0);
    plItemSpace = 10;
    plItems = 0;
@@ -131,6 +132,7 @@ int cSqueezeOsd::ProcessKey(int key)
          if (plCurrent > 0)
             plCurrent--;
 
+         plUserAction = yes;
          lastScrollAt = time(0);
          forceNextDraw = yes;
 
@@ -142,6 +144,7 @@ int cSqueezeOsd::ProcessKey(int key)
          if (plCurrent < lmc->getTrackCount()-1)
             plCurrent++;
 
+         plUserAction = yes;
          lastScrollAt = time(0);
          forceNextDraw = yes;
 
@@ -153,6 +156,7 @@ int cSqueezeOsd::ProcessKey(int key)
          if (plCurrent < lmc->getTrackCount()-1)
             plCurrent = min(plCurrent+plItems, lmc->getTrackCount()-1);
 
+         plUserAction = yes;
          lastScrollAt = time(0);
          forceNextDraw = yes;
 
@@ -164,6 +168,7 @@ int cSqueezeOsd::ProcessKey(int key)
          if (plCurrent > 0)
             plCurrent = max(plCurrent-plItems, 0);
 
+         plUserAction = yes;
          lastScrollAt = time(0);
          forceNextDraw = yes;
 
@@ -172,8 +177,11 @@ int cSqueezeOsd::ProcessKey(int key)
 
       case kOk: 
       {
-         if (plCurrent > na && plCurrent < lmc->getTrackCount()-1) 
+         if (plCurrent > na && plCurrent < lmc->getTrackCount()-1)
+         {
+            plUserAction = no;
             lmc->track(plCurrent);
+         }
 
          break;
       }
@@ -214,16 +222,17 @@ void cSqueezeOsd::Action()
 
       // scroll
 
-      if (time(0) > lastScrollAt + 10)
+      if (time(0) > lastScrollAt + 10 && plUserAction)
       {
-         plCurrent = currentState->plIndex;
-         plTop = max(0, currentState->plIndex-2);
+         plUserAction = no;
          forceNextDraw = yes;
       }
 
       // check for notification with 100ms timeout
 
       changesPending = lmc->checkNotify(100) == success;
+
+      tell(eloDebug, "looping ... (%d) (%d)", changesPending, forceNextDraw);
 
       if (!visible)
          continue;
@@ -232,7 +241,7 @@ void cSqueezeOsd::Action()
 
       if (osd && (cTimeMs::Now() > lastDraw+1000 || fullDraw))
       {
-         if (yes)  // fullDraw) - sice we don't notice when we lost or get the focus we need a full draw ervery time :(
+         if (yes) // :((( always yes instead of (fullDraw) until we not notified when menu is closed
             drawOsd();
          else
             drawProgress();
@@ -350,7 +359,9 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
 
 int cSqueezeOsd::drawOsd()
 {
-   // set alphy to force redraw of background boxes :(
+   tell(eloDebug, "Draw OSD");
+
+   // set alpha to force redraw of background boxes :(
 
    pixmapInfo[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
    pixmapPlaylist[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
@@ -401,7 +412,7 @@ int cSqueezeOsd::drawInfoBox()
    }
 
    pixmapInfo[pmText]->DrawText(cPoint(x, y), currentTrack->artist, clrWhite, clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
-   pixmapInfo[pmText]->DrawText(cPoint(x, y+=step), cString::sprintf("Genre: %s", currentTrack->genre), clrWhite, 
+   pixmapInfo[pmText]->DrawText(cPoint(x, y+=step), cString::sprintf("Genre: %s   Album: %s", currentTrack->genre, currentTrack->album), clrWhite, 
                                 clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
    pixmapInfo[pmText]->DrawText(cPoint(x, y+=step), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
                                 clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taCenter | taTop);
@@ -478,8 +489,13 @@ int cSqueezeOsd::drawPlaylist()
 
    pixmapPlaylist[pmText]->Fill(clrTransparent);       // clear box
 
-   if (lmc->getTrackCount() != lastCount)
+   // set focus tu current if no user interactivity or if count changed
+
+   if (!plUserAction || lmc->getTrackCount() != lastCount)
+   {
       plCurrent = currentState->plIndex;
+      plTop = max(0, currentState->plIndex-2);
+   }
 
    lastCount = lmc->getTrackCount();
 
