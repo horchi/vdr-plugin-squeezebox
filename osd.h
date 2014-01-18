@@ -12,6 +12,8 @@
 
 #include "imgtools.h"
 
+class cMyStatus;
+
 //***************************************************************************
 // Osd
 //***************************************************************************
@@ -35,7 +37,8 @@ class cSqueezeOsd : public cThread
       void Action();
       void stop();
 
-      int playlistCount() { return currentState->plCount; }
+      void setForce()          { forceNextDraw = yes; }
+      int playlistCount()      { return currentState->plCount; }
       int ProcessKey(int key);
 
    protected:
@@ -90,7 +93,8 @@ class cSqueezeOsd : public cThread
       tColor clrBox;
       tColor clrBoxBlend;
       tColor clrTextDark;
-
+      
+      cMyStatus* statusMonitor;
       int border;    // border width in pixel
 };
 

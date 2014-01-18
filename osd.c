@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <vdr/keys.h>
+#include <vdr/status.h>
 
 #include "lib/common.h"
 
@@ -16,6 +17,25 @@
 #include "osd.h"
 #include "helpers.h"
 
+//***************************************************************************
+// Status Interface
+//***************************************************************************
+
+class cMyStatus : public cStatus
+{
+   public:
+
+      cMyStatus(cSqueezeOsd* o) : cStatus()  { osd = o; }
+
+   protected:
+      
+      virtual void OsdClear(void) { osd->setForce(); }
+      
+   private:
+      
+      cSqueezeOsd* osd;
+};
+   
 //***************************************************************************
 // Squeeze Osd
 //***************************************************************************
@@ -34,6 +54,8 @@ cSqueezeOsd::cSqueezeOsd()
    plItemSpace = 10;
    plItems = 0;
    plItemHeight = 0;
+
+   statusMonitor = new cMyStatus(this);
 
    osd = 0;
 
@@ -241,7 +263,7 @@ void cSqueezeOsd::Action()
 
       if (osd && (cTimeMs::Now() > lastDraw+1000 || fullDraw))
       {
-         if (yes) // :((( always yes instead of (fullDraw) until we not notified when menu is closed
+         if (fullDraw) // :((( always yes instead of (fullDraw) until we not notified when menu is closed
             drawOsd();
          else
             drawProgress();
@@ -359,7 +381,7 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
 
 int cSqueezeOsd::drawOsd()
 {
-   tell(eloDebug, "Draw OSD");
+   tell(eloDetail, "Draw OSD");
 
    // set alpha to force redraw of background boxes :(
 
