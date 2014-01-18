@@ -296,7 +296,7 @@ int cSqueezeOsd::init()
 
       if (osd->CanHandleAreas(&control, 1) != oeOk)
       {
-         tell(0, "Can't open osd, CanHandleAreas()");
+         tell(eloAlways, "Can't open osd, CanHandleAreas()");
          return fail;
       }
 
@@ -328,7 +328,7 @@ int cSqueezeOsd::init()
       plItemSpace = ((plHeight-2*border) - (plItems * fontPl->Height()*2)) / plItems;
       plItemHeight = fontPl->Height()*2 + plItemSpace;
 
-      tell(0, "calculated %d items with a space of %d, hight is %d", 
+      tell(eloDebug, "calculated %d items with a space of %d, hight is %d", 
            plItems, plItemSpace, (plHeight-2*border));
 
       createBox(pixmapInfo, leftX, border, width, ifoHeight, clrBox, clrBoxBlend);

@@ -117,7 +117,7 @@ int LmcCom::update(int stateOnly)
 
    if (status != success)
    {
-      tell(0, "Error: Request of '%s' failed", cmd);
+      tell(eloAlways, "Error: Request of '%s' failed", cmd);
       free(buf);
       return fail;
    }
@@ -173,7 +173,7 @@ int LmcCom::update(int stateOnly)
    }
 
    playerState.plCount = tracks.size();
-   tell(0, "playlist updated, got %d track", playerState.plCount);
+   tell(eloDetail, "playlist updated, got %d track", playerState.plCount);
 
    return success;
 }
@@ -192,7 +192,7 @@ int LmcCom::query(const char* command, char* result, int max)
    status += write(" ?\n");
 
    if ((status += response(result, max)) != success)
-       tell(0, "Error: Request of '%s' failed", command);
+       tell(eloAlways, "Error: Request of '%s' failed", command);
 
    unescape(result);
 
@@ -245,12 +245,12 @@ int LmcCom::queryRange(const char* command, int from, int count, RangeList* list
 
    if ((status += response(result, maxResult)) != success || isEmpty(result))
    {
-      tell(0, "Error: Request of '%s' failed", command);
+      tell(eloAlways, "Error: Request of '%s' failed", command);
       return status;
    }
 
    lt.set(result);   
-   tell(0, "Got [%s]", unescape(result));
+   tell(eloDetail, "Got [%s]", unescape(result));
 
    while (lt.getNext(tag, value, maxValue) != LmcTag::wrnEndOfPacket)
    {
@@ -288,7 +288,7 @@ int LmcCom::execute(const char* command, const char* par)
 {
    LmcLock;
 
-   tell(1, "exectuting '%s' with '%s'", command, par ? par : "");
+   tell(eloDetail, "exectuting '%s' with '%s'", command, par ? par : "");
    request(command, par);
    write("\n");
 
@@ -358,7 +358,7 @@ int LmcCom::response(char* result, int max)
       }
       else
       {
-         tell(0, "Got unexpected answer for '%s' [%s]", 
+         tell(eloAlways, "Got unexpected answer for '%s' [%s]", 
               lastCommand, buf);
          
          status = fail;
@@ -441,7 +441,7 @@ int LmcCom::checkNotify(uint64_t timeout)
 
    if (!notify)
    {
-      tell(0, "Cant check for notifications until startNotify is called");
+      tell(eloAlways, "Cant check for notifications until startNotify is called");
       return fail;
    }
 
@@ -453,7 +453,7 @@ int LmcCom::checkNotify(uint64_t timeout)
 
          unescape(buf);
        
-         tell(0, "<- [%s]", buf);
+         tell(eloDetail, "<- [%s]", buf);
          
          if (strstr(buf, "playlist "))
             status = success;
