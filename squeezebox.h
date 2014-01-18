@@ -6,11 +6,17 @@
  * $Id$
  */
 
+#ifndef __SQUEEZEBOX_H
+#define __SQUEEZEBOX_H
+
 #include <vdr/plugin.h>
 #include <vdr/player.h>
 #include <vdr/thread.h>
+#include <vdr/remote.h>
 
-static const char *VERSION        = "0.0.1";
+#include "lmccom.h"
+
+static const char *VERSION        = "0.0.2";
 static const char *DESCRIPTION    = "Squeezebox  - a client for the Logitech Media Server";
 static const char *MAINMENUENTRY  = "Squeezebox";
 
@@ -24,8 +30,10 @@ class cSqueezePlayer : public cPlayer, cThread
 
       cSqueezePlayer();
       virtual ~cSqueezePlayer();
-
+      
       virtual void Stop();
+
+      int started() { return running; }
 
    protected:
 
@@ -33,8 +41,27 @@ class cSqueezePlayer : public cPlayer, cThread
       virtual void Action();
       virtual int startPlayer();
       virtual int stopPlayer();
-
+      
+      int running;
       pid_t pid;
+};
+
+//***************************************************************************
+// Plugin Main Menu
+//***************************************************************************
+
+class cSqueezeMenu : public cOsdMenu
+{
+   public:
+
+      cSqueezeMenu(const char* title, LmcCom* aLmc);
+      virtual ~cSqueezeMenu() { };
+      
+      virtual eOSState ProcessKey(eKeys key);
+
+   protected:
+
+      LmcCom* lmc;
 };
 
 //***************************************************************************
@@ -45,13 +72,24 @@ class cPluginSqueezebox : public cPlugin
 {
    public:
 
-      cPluginSqueezebox(void);
+      cPluginSqueezebox();
       virtual ~cPluginSqueezebox();
 
       virtual const char* Version(void)     { return VERSION; }
       virtual const char* Description(void) { return DESCRIPTION; }
 
-      virtual const char* CommandLineHelp(void);
+      void activateMenu(LmcCom* aLmc) 
+      { 
+         doActivateMenu = yes; 
+         lmcForMenu = aLmc;
+         
+         if (lmcForMenu)
+            cRemote::CallPlugin("squeezebox");
+         else
+            tell(0, "Missing lmc control handle");
+      }
+
+      virtual const char* CommandLineHelp();
       virtual bool ProcessArgs(int argc, char *argv[]);
       virtual bool Initialize(void);
       virtual bool Start(void);
@@ -67,4 +105,14 @@ class cPluginSqueezebox : public cPlugin
       virtual bool Service(const char *Id, void *Data = NULL);
       virtual const char **SVDRPHelpPages(void);
       virtual cString SVDRPCommand(const char *Command, const char *Option, int &ReplyCode);
+
+   protected:
+
+      // data
+
+      LmcCom* lmcForMenu;
+      int doActivateMenu;
 };
+
+//***************************************************************************
+#endif //  __SQUEEZEBOX_H

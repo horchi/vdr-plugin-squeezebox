@@ -1,3 +1,4 @@
+
 //***************************************************************************
 // Group VDR/GraphTFT
 // File tcpchannel.h
@@ -63,11 +64,14 @@ class TcpChannel
 
       int openLstn(unsigned short aPort, const char* aLocalHost = 0);
       int open(unsigned short aPort, const char* aHost);
-
+      int isOpen() { return handle > 0; }
+      int flush();
       int close();
 		int listen(TcpChannel*& child);
-      int look(int aTimeout = 0);
+      int look(uint64_t aTimeout = 0);
       int read(char* buf, int bufLen, int ln = no);
+      char* readln();
+
       int writeCmd(int command, const char* buf = 0, int bufLen = 0);
       int write(const char* buf, int bufLen = 0);
 
@@ -91,6 +95,10 @@ class TcpChannel
       int lookAhead;
       int nTtlReceived;
       int nTtlSent;
+
+      char* readBuffer;
+      int readBufferSize;
+      int readBufferPending;
 
 #ifdef VDR_PLUGIN
       cMutex _mutex;

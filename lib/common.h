@@ -23,8 +23,6 @@ extern int loglevel;
 extern int logstdout;
 extern int logstamp;
 
-using namespace std;
-
 typedef unsigned char byte;
 typedef unsigned short word;
 typedef short sword;
@@ -34,7 +32,10 @@ typedef unsigned int dword;
 // Basics 
 //***************************************************************************
 
-inline long min(long a, long b) { return a < b ? a : b; }
+#ifndef VDR_PLUGIN
+  inline long min(long a, long b) { return a < b ? a : b; }
+  inline long max(long a, long b) { return a > b ? a : b; }
+#endif
 
 enum Misc
 {
@@ -128,9 +129,9 @@ char* lTrim(char* buf);
 char* allTrim(char* buf);
 int isNum(const char* value);
 char* sstrcpy(char* dest, const char* src, int max);
-string num2Str(int num);
-string num2Str(double num);
-string l2pTime(time_t t);
+std::string num2Str(int num);
+std::string num2Str(double num);
+std::string l2pTime(time_t t);
 const char* toElapsed(int seconds, char* buf);
 
 int chkDir(const char* path);
@@ -208,6 +209,26 @@ class cTimeMs
 };
 
 #endif // VDR_PLUGIN
+
+//***************************************************************************
+// Log Duration
+//***************************************************************************
+
+class LogDuration
+{
+   public:
+
+      LogDuration(const char* aMessage, int aLogLevel = 2);
+      ~LogDuration();
+
+      void show(const char* label = "");
+
+   protected:
+
+      char message[1000];
+      uint64_t durationStart;
+      int logLevel;
+};
 
 //***************************************************************************
 // 

@@ -8,6 +8,7 @@
 #include "lmccom.h"
 #include "squeezebox.h"
 #include "config.h"
+#include "osd.h"
 
 cSqueezeConfig cfg;
 
@@ -19,9 +20,9 @@ class cSqueezeControl : public cControl
 {
    public:
 
-      cSqueezeControl();
+      cSqueezeControl(cPluginSqueezebox* aPlugin);
       virtual ~cSqueezeControl();
-      virtual void Hide() {};
+      virtual void Hide() { osdThread->hide(); };
       virtual cOsdObject* GetInfo() { return 0; }
       virtual eOSState ProcessKey(eKeys key);
 
@@ -29,13 +30,25 @@ class cSqueezeControl : public cControl
 
       cSqueezePlayer* player;
       LmcCom* lmc;
+      cSqueezeOsd* osdThread;
+      cPluginSqueezebox* plugin;
+      int startDone;
 };
 
-cSqueezeControl::cSqueezeControl()
+//***************************************************************************
+// Squeeze Control
+//***************************************************************************
+
+cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin)
    : cControl(player = new cSqueezePlayer)
 {
+   plugin = aPlugin;
+
+   startDone = no;
    lmc = new LmcCom(cfg.mac);
-   
+   osdThread = new cSqueezeOsd;
+   osdThread->Start();
+
    tell(eloAlways, "Trying connetion to '%s:%d', my mac is '%s'", cfg.lmcHost, cfg.lmcPort, cfg.mac);
 
    if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
@@ -45,16 +58,17 @@ cSqueezeControl::cSqueezeControl()
    }
    else
    {
-      LmcCom::PlayerInfo* player;
-      player = lmc->updatePlayerState();
-      tell(0, "Connection to LMC server version '%s' at '%s:%d' established", 
-           player->version, cfg.lmcHost, cfg.lmcPort);
+      tell(eloAlways, "Connection to LMC server at '%s:%d' established", 
+           cfg.lmcHost, cfg.lmcPort);
    }
 }
 
 cSqueezeControl::~cSqueezeControl()
 {
+   lmc->save();
+
    delete lmc;
+   delete osdThread;
 }
 
 //***************************************************************************
@@ -63,35 +77,64 @@ cSqueezeControl::~cSqueezeControl()
 
 eOSState cSqueezeControl::ProcessKey(eKeys key)
 {
-   eOSState state = osContinue;
+   eOSState state = cControl::ProcessKey(key);
+
+   if (!startDone && player->started())
+   {
+      startDone = yes;
+      lmc->resume();
+   }
+
+   if (key >= k0 && key <= k9)
+   {
+      lmc->track(key - k0);
+   }
 
    switch (key)
    {       
-      case kStop:
-      case kBlue:
+      case kBack:
       {
-         tell(eloAlways, "stopping player");
-         Hide();
+         tell(eloAlways, "Stopping player");
+         osdThread->hide();
          player->Stop();
          cControl::Shutdown();
          return osEnd;
       }
 
+      case kStop:     lmc->stop();       break;
       case kPlayPause:
       case kPause:    lmc->pausePlay();  break;
-
       case kPlay:     lmc->play();       break;
+      case kFastRew:
       case kGreen:    lmc->scroll(-10);  break;
+      case kFastFwd:
       case kYellow:   lmc->scroll(10);   break;
+      case kNext:     
       case kChanUp:   lmc->nextTrack();  break;
+      case kPrev:
       case kChanDn:   lmc->prevTrack();  break;
       case kMute:     lmc->muteToggle(); break;
 
       case kVolUp:    lmc->volumeUp();   break;
       case kVolDn:    lmc->volumeDown(); break;
 
-      // #TODO - jump direct to track
-      // k0, k1, k2, k3, k4, k5, k6, k7, k8, k9,
+      case kRed:   plugin->activateMenu(lmc);  break;
+
+      case kOk:    osdThread->ProcessKey(key); break;
+      case kUp:    osdThread->ProcessKey(key); break;
+      case kDown:  osdThread->ProcessKey(key); break;
+      case kLeft:  osdThread->ProcessKey(key); break;
+      case kRight: osdThread->ProcessKey(key); break;
+
+      case kBlue:
+      {
+         if (osdThread->playlistCount())
+            lmc->clear();
+         else
+            lmc->randomTracks();
+
+         break;
+      }
 
       default:
          state = osContinue;
@@ -99,13 +142,17 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
 
    return state;
 }
-
+//***************************************************************************
+// - PLUGIN - 
+//***************************************************************************
 //***************************************************************************
 // Squeezebox Plugin
 //***************************************************************************
 
 cPluginSqueezebox::cPluginSqueezebox()
 {
+   doActivateMenu = no;
+   lmcForMenu = 0;
 }
 
 cPluginSqueezebox::~cPluginSqueezebox()
@@ -156,8 +203,14 @@ time_t cPluginSqueezebox::WakeupTime()
 
 cOsdObject* cPluginSqueezebox::MainMenuAction()
 {
-   cControl::Launch(new cSqueezeControl);
-   
+   if (doActivateMenu)
+   {
+      doActivateMenu = no;
+      return new cSqueezeMenu(tr("Playlist"), lmcForMenu);
+   }
+
+   cControl::Launch(new cSqueezeControl(this));
+
    return 0;
 }
 
@@ -168,7 +221,18 @@ cMenuSetupPage* cPluginSqueezebox::SetupMenu()
 
 bool cPluginSqueezebox::SetupParse(const char* Name, const char* Value)
 {
-   return false;
+  if      (!strcasecmp(Name, "logLevel"))     cfg.logLevel = atoi(Value);
+  else if (!strcasecmp(Name, "lmcHost"))      cfg.lmcHost = strdup(Value);
+  else if (!strcasecmp(Name, "lmcPort"))      cfg.lmcPort = atoi(Value);
+  else if (!strcasecmp(Name, "lmcHttpPort"))  cfg.lmcHttpPort = atoi(Value);
+  else if (!strcasecmp(Name, "squeezeCmd"))   cfg.squeezeCmd = strdup(Value);
+  else if (!strcasecmp(Name, "playerName"))   cfg.playerName = strdup(Value);
+  else if (!strcasecmp(Name, "audioDevice"))  cfg.audioDevice = strdup(Value);
+
+  else
+     return false;
+
+  return true;
 }
 
 bool cPluginSqueezebox::Service(const char* Id, void* Data)
@@ -186,4 +250,4 @@ cString cPluginSqueezebox::SVDRPCommand(const char* Command, const char* Option,
    return 0;
 }
 
-VDRPLUGINCREATOR(cPluginSqueezebox);
+VDRPLUGINCREATOR(cPluginSqueezebox)

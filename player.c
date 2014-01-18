@@ -3,7 +3,6 @@
  *
  * See the README file for copyright information and how to reach the author.
  *
- * $Id$
  */
 
 #include <sys/wait.h>
@@ -23,8 +22,9 @@
 //***************************************************************************
 
 cSqueezePlayer::cSqueezePlayer() 
-   : cPlayer(pmAudioOnly) // pmExtern_THIS_SHOULD_BE_AVOIDED) // pmAudioOnly)
+   : cPlayer(pmAudioOnlyBlack)    // pmExtern_THIS_SHOULD_BE_AVOIDED) // pmAudioOnly)
 {
+   running = no;
    pid = 0;
 }
 
@@ -66,7 +66,10 @@ int cSqueezePlayer::startPlayer()
    int res = 0;
 
    if (pid > 0)
+   {
       stopPlayer();
+      sleep(2);   // sometimes pulseaudio need some seconds
+   }
 
    res += pipe(fd);
    res += pipe(wrfd);
@@ -112,7 +115,8 @@ int cSqueezePlayer::startPlayer()
    close(fd[1]);     // Don't need writing end of the stderr pipe in parent.
    close(wrfd[0]);   // Don't need the reading end of the stdin pipe in the parent
    
-   tell(eloAlways, "started %s, pid id %d\n", cfg.squeezeCmd, pid);
+   tell(eloAlways, "started %s with pid %d\n", cfg.squeezeCmd, pid);
+   running = yes;
 
    out = fdopen(fd[0], "r");
       

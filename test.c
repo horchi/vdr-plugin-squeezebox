@@ -14,6 +14,7 @@
 
 #include "lib/common.h"
 #include "lmccom.h"
+#include "lmctag.h"
 
 int doShutdown = no;
 
@@ -39,6 +40,15 @@ void downF(int signal)
    doShutdown = yes; 
 }
 
+void showTags(char* buf)
+{
+   tell(0, "\n\n%s", buf);
+
+   free(buf);
+
+   return ;
+}
+
 //***************************************************************************
 // Main
 //***************************************************************************
@@ -53,9 +63,10 @@ int main(int argc, char** argv)
    logstdout = yes;
    loglevel = 1;
 
+   LmcCom::RangeList list;
    LmcCom* lmc = new LmcCom(mac);
-   LmcCom::TrackInfo* track;
-   LmcCom::PlayerInfo* player;
+   LmcCom::TrackInfo* track = 0;
+   LmcCom::PlayerState* player;
 
    // Usage ..
 
@@ -77,7 +88,9 @@ int main(int argc, char** argv)
          case 'l': if (argv[i+1]) loglevel = atoi(argv[++i]); break;
          case 'h': if (argv[i+1]) lmcHost = argv[++i];        break;
          case 'p': if (argv[i+1]) lmcPort = atoi(argv[++i]);  break;
-
+         case 'e': 
+            showTags(lmc->unescape(strdup(argv[i+1])));
+            goto EXIT;
          default: 
          {
             showUsage(argv[0]);
@@ -88,30 +101,43 @@ int main(int argc, char** argv)
 
    // register signals
 
-   ::signal(SIGINT, downF);
-   ::signal(SIGTERM, downF);
+//    ::signal(SIGINT, downF);
+//    ::signal(SIGTERM, downF);
 
    // open LMC connection
 
    if (lmc->open(lmcHost, lmcPort) != success)
    {
       tell(0, "Opening connection to LMC server at '%s:%d' failed", lmcHost, lmcPort);
-      delete lmc;
-      lmc = 0;
+      delete lmc; lmc = 0;
       return fail;
    }
 
    // update server state
 
-   player = lmc->updatePlayerState();  
-   track = lmc->updateCurrerntTrack();
+   tell(0, "--------------------------");
+   lmc->update();
+   player = lmc->getPlayerState();
 
+   if (strcmp(player->mode, "stop") == 0)
+   {
+//      tell(0, "--------------------------");
+//       lmc->randomTracks();
+//       lmc->updateTrackList();
+   }
+
+   // lmc->nextTrack();
+
+   tell(0, "--------------------------");
    tell(0, "Connection to LMC server version '%s' at '%s:%d' established", player->version, lmcHost, lmcPort);
-   tell(0, "Player: id '%s'; volume %d; muted %s", player->id, player->volume, player->muted ? "yes" : "no");
+   tell(0, "Player: mode %s; volume %d; muted %s, currend track index %d", 
+        player->mode, player->volume, player->muted ? "yes" : "no", player->plIndex);
+
+   track = lmc->getCurrentTrack();
 
    if (track)
    {
-      time_t time = track->time + (cTimeMs::Now() - track->updatedAt) / 1000;
+      time_t time = player->trackTime + (cTimeMs::Now() - track->updatedAt) / 1000;
       time_t remaining = track->duration - time;
 
       tell(0, "--------------------------");
@@ -124,61 +150,44 @@ int main(int argc, char** argv)
            remaining / tmeSecondsPerMinute, remaining % tmeSecondsPerMinute);
    }
 
-//    // next song ...
+   // --------------------------
+   // query range
 
-//    lmc->execute("playlist index +1");
-//    lmc->query("title", title, 100);
-//    tell(0, "%s", title);
+   int total;
 
-   // enable notification
+   tell(0, "--------------------------");
+   tell(0, "Requesting genres: ");
 
-   lmc->startNotify();
-
-   // ....
-
-   while (!doShutdown)
+   if (lmc->queryRange("genres", 0, 100,  &list, total) == success)
    {
-      int notification = lmc->checkNotify();
+      LmcCom::RangeList::iterator it;
 
-      if (notification == LmcCom::ifoTrack)
-      {
-         track = lmc->getCurrentTrack();
-         
-         if (track)
-         {
-            time_t time = track->time + (cTimeMs::Now() - track->updatedAt) / 1000;
-            time_t remaining = track->duration - time;
+      for (it = list.begin(); it != list.end(); ++it)
+         tell(0, "  '%s'", (*it).c_str());
 
-            tell(0, "--------------------------");
-            tell(0, "Titel: %s", track->title);
-            tell(0, "Interpret: %s", track->artist);
-            tell(0, "Genre: %s", track->genre);
-            tell(0, "Dauer: %d:%02d", track->duration / tmeSecondsPerMinute, track->duration % tmeSecondsPerMinute);
-            tell(0, "Progress: %d:%02d ... -%d:%02d", 
-                 time / tmeSecondsPerMinute, time % tmeSecondsPerMinute,
-                 remaining / tmeSecondsPerMinute, remaining % tmeSecondsPerMinute);
-
-            lmc->getCurrentCover(&cover);
-            storeFile(&cover, "cover.jpg");
-            tell(eloAlways, "Saved cover to 'cover.jpg'");
-         }
-      }
-      else if (notification == LmcCom::ifoPlayer)
-      {
-         tell(0, "Player mode now: %s", player->mode);
-      }
-      else if (strcmp(player->mode, "play") == 0)
-      {
-         time_t time = track->time + (cTimeMs::Now() - track->updatedAt) / 1000;
-         time_t remaining = track->duration - time;
-
-         tell(0, "Progress: %d:%02d ... -%d:%02d (vol %d %s)", 
-              time / tmeSecondsPerMinute, time % tmeSecondsPerMinute,
-              remaining / tmeSecondsPerMinute, remaining % tmeSecondsPerMinute,
-              player->volume, player->muted ? "yes" : "no"
-            );
-      }
+      if (total > 100)
+         tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
    }
+
+   // tell(0, "--------------------------");
+   // tell(0, "Load Album");
+   // lmc->loadAlbum("Classic Rock", "*", "*");
+
+   // --------------------------
+   // tracklist (playlist)
+
+   if (yes)
+   {
+      tell(0, "--------------------------");
+      // lmc->updateTrackList();
+      tell(0, "Playlist: '%s'", player->plName);
+      
+      for (int i = 0; i < lmc->getTrackCount(); i++)
+         tell(0, "  (%d) '%s' - '%s'", i,
+              lmc->getTrack(i)->artist, lmc->getTrack(i)->title);
+   }
+   
+  EXIT:
 
    // close connection 
 

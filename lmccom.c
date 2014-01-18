@@ -11,6 +11,7 @@
 
 #include "lib/common.h"
 #include "lmccom.h"
+#include "lmctag.h"
 
 //***************************************************************************
 // Object
@@ -30,6 +31,9 @@ LmcCom::LmcCom(const char* aMac)
    mac = 0;
    escId = 0;
 
+   *lastCommand = 0;
+   lastPar = 0;
+
    if (!isEmpty(aMac))
    {
       mac = strdup(aMac);
@@ -46,6 +50,7 @@ LmcCom::~LmcCom()
    free(host);
    free(mac);
    free(escId);
+   free(lastPar);
 }
 
 //***************************************************************************
@@ -54,6 +59,8 @@ LmcCom::~LmcCom()
 
 int LmcCom::open(const char* aHost, unsigned short aPort)
 {
+   LmcLock;
+
    free(host);
    port = aPort;
    host = strdup(aHost);
@@ -62,56 +69,113 @@ int LmcCom::open(const char* aHost, unsigned short aPort)
 }
 
 //***************************************************************************
-// Update Currernt Track
+// Update Current Playlist
 //***************************************************************************
 
-LmcCom::TrackInfo* LmcCom::updateCurrerntTrack()
+int LmcCom::update(int stateOnly)
 {
-   int status;
+   LmcLock;
 
-   status = query("genre",   currentTrack.genre,    sizeof(currentTrack.genre))
-      + query("album",       currentTrack.album,    sizeof(currentTrack.album))
-      + query("artist",      currentTrack.artist,   sizeof(currentTrack.artist))
-      + query("title",       currentTrack.title,    sizeof(currentTrack.title))
-      + queryInt("duration", currentTrack.duration)
-      + queryInt("time",     currentTrack.time)
-      + query("path",        currentTrack.path,     sizeof(currentTrack.path));
+   const int maxValue = 500;    // 500 due to long url tag
+   char value[maxValue+TB];
+   int tag;
+
+   LmcTag lt(this);
+   char cmd[100];
+   int status = success;
+   int count = 0;
+   TrackInfo t;
+   int track = no;
+
+   memset(&playerState, 0, sizeof(playerState));
+   tracks.clear();
+
+   status += queryInt("playlist tracks", count);
+   query("version",               playerState.version,  sizeof(playerState.version));
+   queryInt("mixer muting",       playerState.muted);
 
    if (status != success)
-      return 0;
+      return status;
 
-   currentTrack.updatedAt = cTimeMs::Now();
-   currentTrack.remaining = currentTrack.duration - currentTrack.time;
-   unescape(currentTrack.path);   // path is double escaped :o
-   
-   return &currentTrack;
-}
+   int size = 500 + 600 * count;
+   char* buf = (char*)malloc(size);
 
-//***************************************************************************
-// Update Player State
-//***************************************************************************
+   if (!stateOnly)   
+      count = max(count, 100);
 
-LmcCom::PlayerInfo* LmcCom::updatePlayerState()
-{
-   int status;
+   char* param = escape("tags:agdclu");
+   sprintf(cmd, "status 0 %d %s", count, param);
+   free(param);
 
-   status = query("mode",              playerState.mode,     sizeof(playerState.mode))
-      + query("version",               playerState.version,  sizeof(playerState.version))
-      + queryInt("mixer volume",       playerState.volume)
-      + queryInt("mixer muting",       playerState.muted)
-      + queryInt("playlist index",     playerState.plIndex)
-      + queryInt("playlist tracks",    playerState.plCount)
-      + queryInt("playlist shuffle",   playerState.plShuffle)
-      + queryInt("playlist repeat",   playerState.plRepeat)
-      + query("player id VDR-Squeeze", playerState.id,       sizeof(playerState.id));
+   // perform LMC request ..
+
+   LmcDoLock;
+   status = request(cmd);
+   status += write("\n");
+   status += response(buf, size);
+   LmcUnLock;
 
    if (status != success)
    {
-      tell(eloAlways, "Error: Requesting player state failed");
-      return 0;
+      tell(0, "Error: Request of '%s' failed", cmd);
+      free(buf);
+      return fail;
    }
 
-   return &playerState;
+   lt.set(buf);
+   free(buf);
+
+   t.index = na;
+   
+   while (lt.getNext(tag, value, maxValue, track) != LmcTag::wrnEndOfPacket)
+   {
+      switch (tag)
+      {
+         case LmcTag::tTime:             playerState.trackTime = atoi(value);  playerState.updatedAt = cTimeMs::Now(); break;
+         case LmcTag::tMixerVolume:      playerState.volume = atoi(value);     break;
+         case LmcTag::tPlaylistCurIndex: playerState.plIndex  = atoi(value);   break;
+         case LmcTag::tPlaylistShuffle:  playerState.plShuffle = atoi(value);  break;
+         case LmcTag::tPlaylistRepeat:   playerState.plRepeat = atoi(value);   break;
+         case LmcTag::tMode:         snprintf(playerState.mode, sizeof(playerState.mode), "%s", value);     break;
+         case LmcTag::tPlaylistName: snprintf(playerState.plName, sizeof(playerState.plName), "%s", value); break;
+
+         // playlist tags ...
+
+         case LmcTag::tPlaylistIndex:
+         {
+            if (t.index != na)
+            {
+               t.updatedAt = cTimeMs::Now();
+               tracks.push_back(t);
+               memset(&t, 0, sizeof(t));
+            }
+            
+            track = yes;
+            t.index = atoi(value);
+            break;
+         }
+         
+         case LmcTag::tId:            t.id = atoi(value);                                  break;
+         case LmcTag::tTitle:         snprintf(t.title, sizeof(t.title), "%s", value);     break;
+         case LmcTag::tArtist:        snprintf(t.artist, sizeof(t.artist), "%s", value);   break;
+         case LmcTag::tGenre:         snprintf(t.genre, sizeof(t.genre), "%s", value);     break;
+         case LmcTag::tTrackDuration: t.duration = atoi(value);                            break;  
+         case LmcTag::tCoverid:       snprintf(t.coverid, sizeof(t.coverid), "%s", value); break; 
+         case LmcTag::tAlbum:         snprintf(t.album, sizeof(t.album), "%s", value);     break;
+      // case LmcTag::tUrl:           snprintf(t.url, sizeof(t.url), "%s", url);           break;
+      }
+   }
+
+   if (t.index != na)
+   {
+      t.updatedAt = cTimeMs::Now();
+      tracks.push_back(t);
+   }
+
+   playerState.plCount = tracks.size();
+   tell(0, "playlist updated, got %d track", playerState.plCount);
+
+   return success;
 }
 
 //***************************************************************************
@@ -120,26 +184,34 @@ LmcCom::PlayerInfo* LmcCom::updatePlayerState()
 
 int LmcCom::query(const char* command, char* result, int max)
 {
+   LmcLock;
+
    int status;
 
-   request(command);
-   write(" ?\n");
+   status = request(command);
+   status += write(" ?\n");
 
-   if ((status = response(result, max)) != success)
+   if ((status += response(result, max)) != success)
        tell(0, "Error: Request of '%s' failed", command);
-      
+
+   unescape(result);
+
    return status;
 }
 
 int LmcCom::queryInt(const char* command, int& value)
 {
-   int status = success;
+   LmcLock;
 
+   // LogDuration ld("queryInt", 0);
+   int status;
    char result[100+TB];
 
    status = request(command);
    status += write(" ?\n");
    status += response(result, 100);
+
+   unescape(result);
 
    if (status == success)
       value = atol(result);
@@ -148,12 +220,76 @@ int LmcCom::queryInt(const char* command, int& value)
 }
 
 //***************************************************************************
+// Query Range
+//***************************************************************************
+
+int LmcCom::queryRange(const char* command, int from, int count, RangeList* list, int& total)
+{
+   LmcLock;
+
+   const int maxResult = 10000;
+   const int maxValue = 100;
+   char value[maxValue+TB];
+   char content[maxValue+TB]; *content = 0;
+   int tag;
+   int id = na;
+   char result[maxResult+TB];
+   char cmd[200];
+   LmcTag lt(this);
+   int status;
+
+   snprintf(cmd, 200, "%s %d %d", command, from, count);
+   status = request(cmd);
+   status += write("\n");
+   total = 0;
+
+   if ((status += response(result, maxResult)) != success || isEmpty(result))
+   {
+      tell(0, "Error: Request of '%s' failed", command);
+      return status;
+   }
+
+   lt.set(result);   
+   tell(0, "Got [%s]", unescape(result));
+
+   while (lt.getNext(tag, value, maxValue) != LmcTag::wrnEndOfPacket)
+   {
+      switch (tag)
+      {
+         case LmcTag::tItemCount: total = atoi(value);     break;
+         case LmcTag::tGenre:     strcpy(content, value);  break;
+         case LmcTag::tArtist:    strcpy(content, value);  break;
+         case LmcTag::tAlbum:     strcpy(content, value);  break;
+         case LmcTag::tPlaylist:  
+            if (strcmp(value, escId) != 0)
+               strcpy(content, value);  
+            break;
+         case LmcTag::tId:        id = atoi(value);        break;
+      }
+
+      if (id != na && !isEmpty(content))
+      {
+         list->push_back(content);
+         *content = 0;
+         id = na;
+      }
+   }
+
+   list->sort();
+   
+   return success;
+}
+
+//***************************************************************************
 // Execute
 //***************************************************************************
 
-int LmcCom::execute(const char* command)
+int LmcCom::execute(const char* command, const char* par)
 {
-   request(command);
+   LmcLock;
+
+   tell(1, "exectuting '%s' with '%s'", command, par ? par : "");
+   request(command, par);
    write("\n");
 
    return response();
@@ -163,18 +299,28 @@ int LmcCom::execute(const char* command)
 // Request
 //***************************************************************************
 
-int LmcCom::request(const char* command)
+int LmcCom::request(const char* command, const char* par)
 {
    int status;
+   
+   free(lastPar); lastPar = 0;
+   snprintf(lastCommand, sizeMaxCommand, "%s", command);
 
-   if (strlen(command) > sizeMaxCommand)
-      return fail;
+   if (!isEmpty(par))
+      lastPar = escape(par);
+   
+   tell(eloDebug, "requsting '%s' with '%s'", 
+        lastCommand, lastPar);
 
-   strcpy(lastCommand, command);
+   flush();
 
    status = write(escId)
       + write(" ")
       + write(lastCommand);
+
+   if (lastPar)
+      status += write(" ")
+         + write(lastPar);
 
    return status;
 }
@@ -185,37 +331,43 @@ int LmcCom::request(const char* command)
 
 int LmcCom::response(char* result, int max)
 {
-   char buf[1000+TB];
+   // LogDuration ld("response", 0);
 
-   if (look(1) == success)
+   int status = success;
+   char* buf = 0;
+
+   if (result)
+      *result = 0;
+
+   if (look(30000) == success && (buf = readln()))
    {
-      if (read(buf, 1000, yes) == success)
+      char* p = buf + strlen(escId) +1;
+      
+      if ((p = strstr(p, lastCommand)) && strlen(p) >= strlen(lastCommand))
       {
-         const char* p;
+         p += strlen(lastCommand);
 
-         buf[strlen(buf)-1] = 0;   // cut LF
-
-         unescape(buf);
+         while (*p && *p == ' ')         // skip leading blanks
+            p++;
          
-         if ((p = strstr(buf, lastCommand)))
-         {
-            p += strlen(lastCommand)+1;
-
-            if (result && max)
-               sprintf(result, "%.*s", max, p);
-
-            tell(eloDebug, "<- (response) [%s]", p);
-
-            return success;
-         }
-
-         tell(0, "Got unexpected answer [%s]", buf);
+         if (result && max && strcmp(p,"?") != 0)
+            sprintf(result, "%.*s", max, p);
+         
+         if (loglevel >= eloDebug)
+            tell(eloDebug, "<- (response %d bytes) [%s]", strlen(buf), unescape(p));
       }
-
-      return fail;
+      else
+      {
+         tell(0, "Got unexpected answer for '%s' [%s]", 
+              lastCommand, buf);
+         
+         status = fail;
+      }
+      
+      free(buf);
    }
 
-   return fail;  
+   return status;
 }
 
 //***************************************************************************
@@ -237,7 +389,7 @@ char* LmcCom::unescape(char* buf)
    return buf;
 }
 
-char* LmcCom::escape(char* buf)
+char* LmcCom::escape(const char* buf)
 {
    char* res;
 
@@ -281,10 +433,11 @@ int LmcCom::stopNotify()
 // Check for Notification
 //***************************************************************************
 
-int LmcCom::checkNotify()
+int LmcCom::checkNotify(uint64_t timeout)
 {
-   int status  = fail;
+   // LogDuration ld("checkNotify", 0);
    char buf[1000+TB];
+   int status = wrnNoEventPending;
 
    if (!notify)
    {
@@ -292,44 +445,27 @@ int LmcCom::checkNotify()
       return fail;
    }
 
-   if (notify->look(1) == success)
+   while (notify->look(timeout) == success)
    {
       if (notify->read(buf, 1000, yes) == success)
       {
-         const char* p;
-
          buf[strlen(buf)-1] = 0;   // cut LF
 
          unescape(buf);
+       
+         tell(0, "<- [%s]", buf);
          
-         if ((p = strstr(buf, "ed ")))
-         {
-            p += strlen("ed ");
+         if (strstr(buf, "playlist "))
             status = success;
-
-            tell(eloDebug, "<- [%s]", p);
-
-            if (strstr(p, "newsong"))
-            {
-               updateCurrerntTrack();
-               status = ifoTrack;
-            }
-
-            else if (strstr(p, "pause") || strstr(p, "server"))
-            {
-               updatePlayerState();
-               updateCurrerntTrack();
-               status = ifoPlayer;
-            }
-
-            return status;
-         }
+         else if (strstr(buf, "pause ") || strstr(buf, "server"))
+            status = success;
       }
-
-      return fail;
    }
 
-   return wrnNoEventPending;
+   if (status == success)
+      update();
+
+   return status;
 }
 
 //***************************************************************************
@@ -338,12 +474,11 @@ int LmcCom::checkNotify()
 
 int LmcCom::getCurrentCover(MemoryStruct* cover)
 {
-   int res;
    char* url = 0;
 
    // http://localhost:9000/music/current/cover.jpg?player=f0:4d:a2:33:b7:ed
    
-   res = asprintf(&url, "http://%s:%d/music/current/cover.jpg?player=%s", 
+   asprintf(&url, "http://%s:%d/music/current/cover.jpg?player=%s", 
             host, 9000, escId);
 
    downloadFile(url, cover);

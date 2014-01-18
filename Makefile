@@ -11,6 +11,9 @@ PLUGIN = squeezebox
 
 DEBUG = 1
 
+# External image lib to use: imagemagick, graphicsmagick
+IMAGELIB = imagemagick
+
 ### The version number of this plugin (taken from the main source file):
 
 VERSION = $(shell grep 'static const char \*VERSION *=' $(PLUGIN).h | awk '{ print $$6 }' | sed -e 's/[";]//g')
@@ -29,6 +32,10 @@ TMPDIR ?= /tmp
 
 export CFLAGS   = $(call PKGCFG,cflags)
 export CXXFLAGS = $(call PKGCFG,cxxflags)
+
+CXXFLAGS += -Wno-unused-result -Wreturn-type -Wno-long-long \
+            -Wformat -Wunused-variable -Wunused-label \
+            -pedantic -Wunused-value -Wunused-function \
 
 ifdef DEBUG
   CXXFLAGS += -ggdb -O0
@@ -56,13 +63,20 @@ SOFILE = libvdr-$(PLUGIN).so
 
 ### Includes and Defines (add further entries here):
 
-INCLUDES +=
+ifeq ($(IMAGELIB), imagemagick)
+	INCLUDES += $(shell pkg-config --cflags Magick++)
+	LIBS += $(shell pkg-config --libs Magick++)
+else ifeq ($(IMAGELIB), graphicsmagick)
+	INCLUDES += $(shell pkg-config --cflags GraphicsMagick++)
+	LIBS += $(shell pkg-config --libs GraphicsMagick++)
+endif
 
 DEFINES += -DVDR_PLUGIN -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
 
 ### The object files (add further files here):
 
-OBJS = $(PLUGIN).o lmccom.o config.o player.o lib/common.o lib/tcpchannel.o lib/curl.o
+OBJS = $(PLUGIN).o lmccom.o osd.o menu.o config.o player.o helpers.o \
+     lmctag.o imgtools.o lib/common.o lib/tcpchannel.o lib/curl.o
 
 ### The main target:
 
@@ -131,4 +145,4 @@ clean:
 	@-rm -f $(OBJS) $(DEPFILE) *.so *.tgz core* *~ lib/*~ lib/*.o tt
 
 tt: test.c lmccom.c lib/tcpchannel.c lib/common.c
-	$(CXX) -ggdb test.c lmccom.c lib/tcpchannel.c lib/common.c lib/curl.c $(LIBS) -o tt
+	$(CXX) $(CXXFLAGS) test.c lmctag.c lmccom.c lib/tcpchannel.c lib/common.c lib/curl.c $(LIBS) -o tt

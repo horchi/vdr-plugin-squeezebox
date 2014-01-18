@@ -20,11 +20,13 @@ class cSqueezeConfig
 
       char* lmcHost;
       unsigned short lmcPort;
+      unsigned short lmcHttpPort;
 
       char* squeezeCmd;
       char* playerName;
       char* mac;      
       char* audioDevice;
+      unsigned short logLevel;
 };
 
 extern cSqueezeConfig cfg;

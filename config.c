@@ -17,13 +17,13 @@
 
 cSqueezeConfig::cSqueezeConfig()
 {
+   logLevel = 1;
    lmcHost = strdup("localhost");
    lmcPort = 9090;
+   lmcHttpPort = 9000;
 
    squeezeCmd = strdup("/usr/local/bin/squeezelite");
    playerName = strdup("VDR-squeeze");
-
-   // audioDevice = strdup("hw:CARD=NVidia,DEV=9");
    audioDevice = strdup("");
 
    mac = getMac();

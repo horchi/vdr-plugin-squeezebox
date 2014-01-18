@@ -18,10 +18,11 @@
 #include <unistd.h>
 #include <zlib.h>
 
-#include <algorithm>
+//#include <algorithm>
 
 #ifdef VDR_PLUGIN
 # include <vdr/thread.h>
+# include <vdr/tools.h>
 #endif
 
 #include "common.h"
@@ -283,11 +284,11 @@ void removeCharsExcept(std::string& str, const char* except)
    free(dest);
 }
 
-void removeWord(string& pattern, string word)
+void removeWord(std::string& pattern, std::string word)
 {
-   size_t  pos;
+   size_t pos;
 
-   if ((pos = pattern.find(word)) != string::npos)
+   if ((pos = pattern.find(word)) != std::string::npos)
       pattern.swap(pattern.erase(pos, word.length()));
 }
 
@@ -377,36 +378,36 @@ int isNum(const char* value)
 // Number to String
 //***************************************************************************
 
-string num2Str(int num)
+std::string num2Str(int num)
 {
    char txt[16];
 
    snprintf(txt, sizeof(txt), "%d", num);
 
-   return string(txt);
+   return std::string(txt);
 }
 
-string num2Str(double num)
+std::string num2Str(double num)
 {
    char txt[16];
 
    snprintf(txt, sizeof(txt), "%.2f", num);
 
-   return string(txt);
+   return std::string(txt);
 }
 
 //***************************************************************************
 // Long to Pretty Time
 //***************************************************************************
 
-string l2pTime(time_t t)
+std::string l2pTime(time_t t)
 {
    char txt[30];
    tm* tmp = localtime(&t);
    
    strftime(txt, sizeof(txt), "%d.%m.%Y %T", tmp);
    
-   return string(txt);
+   return std::string(txt);
 }
 
 const char* toElapsed(int seconds, char* buf)
@@ -869,6 +870,32 @@ uint64_t cTimeMs::Elapsed(void)
 #endif // VDR_PLUGIN
 
 //***************************************************************************
+// Class LogDuration
+//***************************************************************************
+
+LogDuration::LogDuration(const char* aMessage, int aLogLevel)
+{
+   logLevel = aLogLevel;
+   strcpy(message, aMessage);
+   
+   // at last !
+
+   durationStart = cTimeMs::Now();
+}
+
+LogDuration::~LogDuration()
+{
+   tell(logLevel, "duration '%s' was (%dms)",
+     message, cTimeMs::Now() - durationStart);
+}
+
+void LogDuration::show(const char* label)
+{
+   tell(logLevel, "elapsed '%s' at '%s' was (%dms)",
+     message, label, cTimeMs::Now() - durationStart);
+}
+
+//***************************************************************************
 // Get Mac
 //***************************************************************************
 
@@ -929,17 +956,18 @@ char* getMac()
 
 int storeFile(MemoryStruct* data, const char* filename, const char* path)
 {
-   int res;
    char* outfile = 0;
    FILE* fout;
 
    if (!isEmpty(path))
    {
       chkDir(path);
-      res = asprintf(&outfile, "%s/%s", path, filename);
+      if (asprintf(&outfile, "%s/%s", path, filename))
+         ;
    }
    else
-      res = asprintf(&outfile, "%s", filename);
+      if (asprintf(&outfile, "%s", filename))
+         ;
 
    if ((fout = fopen(outfile, "w+")))
    {

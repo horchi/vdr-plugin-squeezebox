@@ -42,10 +42,16 @@ TcpChannel::TcpChannel(int aTimeout, int aHandle)
 
    lookAheadChar = false;
    lookAhead = 0;
+
+   readBufferSize = 1000;
+   readBuffer = (char*)malloc(readBufferSize+TB);
+   *readBuffer = 0;
+   readBufferPending = 0;
 }
 
 TcpChannel::~TcpChannel()
 {
+   free(readBuffer);
    close();
 }
 
@@ -237,6 +243,27 @@ int TcpChannel::open(unsigned short aPort, const char* aHost)
 }
 
 //***************************************************************************
+// Flush
+//***************************************************************************
+
+int TcpChannel::flush()
+{
+   int res;
+
+   while ((res = ::read(handle, readBuffer, readBufferSize)) > 0)
+      ;
+
+   if (res > 0)
+      tell(0, "flushed %d bytes", res);
+
+   *readBuffer = 0;
+   readBufferPending = 0;
+   lookAhead = false;
+
+   return done;
+}
+
+//***************************************************************************
 // Read
 //***************************************************************************
 
@@ -262,7 +289,7 @@ int TcpChannel::read(char* buf, int bufLen, int ln)
    
    while (nReceived < bufLen)
    {
-      result = ::read(handle, buf + nReceived, bufLen - nReceived);
+      result = ::read(handle, buf + nReceived, ln ? 1 : bufLen - nReceived);
       
       if (result < 0)
       {
@@ -272,7 +299,7 @@ int TcpChannel::read(char* buf, int bufLen, int ln)
          // time-out for select
          
          wait.tv_sec  = 0;
-         wait.tv_usec = 1;
+         wait.tv_usec = 0;
          
          // clear and set file-descriptors
          
@@ -314,10 +341,118 @@ int TcpChannel::read(char* buf, int bufLen, int ln)
 }
 
 //***************************************************************************
+// Read Line
+//  - caller has to free the result!
+//***************************************************************************
+
+char* TcpChannel::readln()
+{
+   struct timeval tv;
+   int nfds, result;
+   fd_set readFD;
+   int nReceived = 0;
+   char* end = 0; 
+
+   if (!handle)
+      return 0;
+
+   nReceived = readBufferPending;
+
+   if (lookAhead)
+   {
+      readBuffer[nReceived] = lookAheadChar;
+      lookAhead = false;
+      nReceived++;
+   }
+
+   const int step = 100;
+   
+   while (true)
+   {
+      // need resize ?
+
+      if (nReceived+step >= readBufferSize)
+      {
+         readBufferSize += step*2;
+         readBuffer = (char*)realloc(readBuffer, readBufferSize+TB);
+      }
+      
+      // read data
+
+      result = ::read(handle, readBuffer + nReceived, step);
+
+      if (result > 0)
+      {
+         readBuffer[nReceived+result] = 0;
+
+         // inc read char count
+
+         if ((end = strchr(readBuffer+nReceived, '\n')))
+         {
+            char* line;
+            int lineSize = end - readBuffer;
+            
+            *end = 0;                    // terminate line
+            line = strdup(readBuffer);
+
+            nReceived += result;            
+            readBufferPending = nReceived - lineSize-1;
+            memmove(readBuffer, readBuffer+lineSize+1, readBufferPending);
+               
+            nTtlReceived += lineSize+1;
+            
+            return line;
+         }
+
+         nReceived += result;
+      }
+
+      else if (result < 0)
+      {
+         if (errno != EWOULDBLOCK)
+            return 0; // checkErrno();
+         
+         // time-out for select
+         
+         tv.tv_sec  = timeout;
+         tv.tv_usec = 0;
+         
+         // clear and set file-descriptors
+         
+         FD_ZERO(&readFD);
+         FD_SET(handle, &readFD);
+         
+         // look event
+
+         if ((nfds = ::select(handle+1, &readFD, NULL, NULL, &tv)) < 0)
+            return 0; // checkErrno();
+
+         // no event occured -> timeout
+         
+         if (nfds == 0)
+         {
+            readBuffer[nReceived] = 0;
+
+            return 0; // wrnTimeout;
+         }
+      }
+      
+      else if (result == 0)
+      {
+         // connection closed -> eof received
+
+         return 0; // errConnectionClosed;
+      }
+   }
+
+   return 0;
+}
+
+//***************************************************************************
 // Look
 //***************************************************************************
 
-int TcpChannel::look(int aTimeout)
+int TcpChannel::look(uint64_t aTimeout)
 {
    struct timeval tv;
    fd_set readFD, writeFD, exceptFD;
@@ -326,10 +461,10 @@ int TcpChannel::look(int aTimeout)
    if (!handle)
       return fail;
 
-   // time-out for select
+   // time-out for select, aTimeout in [ms] !!
 
-   tv.tv_sec  = aTimeout;
-   tv.tv_usec = 1;
+   tv.tv_sec  = aTimeout / 1000;
+   tv.tv_usec = (aTimeout % 1000) * 1000;  // calc us
 
    // clear and set file-descriptors
 
