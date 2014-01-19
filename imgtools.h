@@ -9,7 +9,7 @@
 using namespace Magick;
 
 //***************************************************************************
-// cImageMagickWrapper - adapted from skinnopacity
+// cImageMagickWrapper - adapted from skin-nopacity
 //***************************************************************************
 
 class cImageMagickWrapper
@@ -22,6 +22,7 @@ class cImageMagickWrapper
       cImage createImageCopy();
       int loadImage(const char* fullpath);
       cImage* createImage(int width, int height, bool preserveAspect);
+      cImage* createImageFromFile(const char* path, int width, int height, bool preserveAspect);
 
       void createBackground(tColor back, tColor blend, int width, int height, bool mirror = false);
       void createBackgroundReverse(tColor back, tColor blend, int width, int height);

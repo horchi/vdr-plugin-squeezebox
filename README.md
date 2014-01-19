@@ -38,6 +38,13 @@ Installation:
   #> make
   #> make install
 
+  install plugin config files
+
+  #> mkdir <plugin-conf-path>/squeezebox
+  #> cp ./config/* <plugin-conf-path>/squeezebox/
+  #> chown -R <vdr-user> <plugin-conf-path>/squeezebox
+
+
 2. softhddevice Patch
 
   The squeezebox plugin need a deblocked sound device, a blacked video 

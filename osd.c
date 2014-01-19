@@ -40,7 +40,7 @@ class cMyStatus : public cStatus
 // Squeeze Osd
 //***************************************************************************
 
-cSqueezeOsd::cSqueezeOsd() 
+cSqueezeOsd::cSqueezeOsd(const char* aConfDir)
    : cThread()
 {
    loopActive = no;
@@ -54,7 +54,9 @@ cSqueezeOsd::cSqueezeOsd()
    plItemSpace = 10;
    plItems = 0;
    plItemHeight = 0;
-
+   confDir = strdup(aConfDir);
+   symbolBoxHeight = 100;
+   
    statusMonitor = new cMyStatus(this);
 
    osd = 0;
@@ -70,6 +72,7 @@ cSqueezeOsd::cSqueezeOsd()
 
    fontStd = 0;
    fontTilte = 0;
+   fontArtist = 0;
    fontPl = 0;
 
    clrBox = 0xFF000040;
@@ -91,31 +94,38 @@ cSqueezeOsd::cSqueezeOsd()
 cSqueezeOsd::~cSqueezeOsd()
 {
    stop();
-   hide();
 
-   osd->DestroyPixmap(pixmapInfo[0]);
-   osd->DestroyPixmap(pixmapInfo[1]);
-   osd->DestroyPixmap(pixmapPlaylist[0]);
-   osd->DestroyPixmap(pixmapPlaylist[1]);
-   osd->DestroyPixmap(pixmapPlCurrent[0]);
-   osd->DestroyPixmap(pixmapPlCurrent[1]);
-   osd->DestroyPixmap(pixmapStatus[0]);
-   osd->DestroyPixmap(pixmapStatus[1]);
+   if (osd)
+   {
+      osd->DestroyPixmap(pixmapInfo[0]);
+      osd->DestroyPixmap(pixmapInfo[1]);
+      osd->DestroyPixmap(pixmapPlaylist[0]);
+      osd->DestroyPixmap(pixmapPlaylist[1]);
+      osd->DestroyPixmap(pixmapPlCurrent[0]);
+      osd->DestroyPixmap(pixmapPlCurrent[1]);
+      osd->DestroyPixmap(pixmapStatus[0]);
+      osd->DestroyPixmap(pixmapStatus[1]);
+      
+      osd->DestroyPixmap(pixmapBtnRed[0]);
+      osd->DestroyPixmap(pixmapBtnRed[1]);
+      osd->DestroyPixmap(pixmapBtnGreen[0]);
+      osd->DestroyPixmap(pixmapBtnGreen[1]);
+      osd->DestroyPixmap(pixmapBtnYellow[0]);
+      osd->DestroyPixmap(pixmapBtnYellow[1]);
+      osd->DestroyPixmap(pixmapBtnBlue[0]);
+      osd->DestroyPixmap(pixmapBtnBlue[1]);
+   }
 
-   osd->DestroyPixmap(pixmapBtnRed[0]);
-   osd->DestroyPixmap(pixmapBtnRed[1]);
-   osd->DestroyPixmap(pixmapBtnGreen[0]);
-   osd->DestroyPixmap(pixmapBtnGreen[1]);
-   osd->DestroyPixmap(pixmapBtnYellow[0]);
-   osd->DestroyPixmap(pixmapBtnYellow[1]);
-   osd->DestroyPixmap(pixmapBtnBlue[0]);
-   osd->DestroyPixmap(pixmapBtnBlue[1]);
-   
-   delete osd;
    delete fontTilte;
+   delete fontArtist;
    delete fontStd;
    delete fontPl;
    delete lmc;
+   delete statusMonitor;
+
+   delete osd;
+
+   free(confDir);
 }
 
 //***************************************************************************
@@ -136,7 +146,6 @@ void cSqueezeOsd::view()
 
 void cSqueezeOsd::hide()
 {
-   // visible = no;
    forceNextDraw = yes;
 }
 
@@ -146,7 +155,6 @@ void cSqueezeOsd::hide()
 
 int cSqueezeOsd::ProcessKey(int key)
 {
-   
    switch (key)
    {       
       case kUp:
@@ -228,7 +236,7 @@ void cSqueezeOsd::Action()
 
    lmc->update();
    lmc->startNotify();
-   
+
    while (loopActive && Running())
    {
       if (!lmc->isOpen())
@@ -266,7 +274,10 @@ void cSqueezeOsd::Action()
          if (fullDraw) // :((( always yes instead of (fullDraw) until we not notified when menu is closed
             drawOsd();
          else
+         {
             drawProgress();
+            drawStatus();
+         }
 
          forceNextDraw = no;
          lastDraw = cTimeMs::Now();
@@ -308,6 +319,7 @@ int cSqueezeOsd::init()
 
       fontStd = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 9.0);
       fontTilte = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 13.0);
+      fontArtist = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 11.0);
       fontPl = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 7.0);
 
       // draw black background
@@ -317,7 +329,7 @@ int cSqueezeOsd::init()
       // create boxed
 
       int stHeight = fontStd->Height() + 2 * border;
-      int ifoHeight = 2 * fontTilte->Height() + 4 * fontStd->Height() + 2 * border;
+      int ifoHeight = 2 * fontTilte->Height() + fontArtist->Height() + 3 * fontStd->Height() + 2 * border;
       int plY = border + ifoHeight + 2 * border;
       int plHeight = cOsd::OsdHeight() - plY - stHeight - 2 * border;
       int stY = plY + plHeight + 2 * border;
@@ -412,7 +424,6 @@ int cSqueezeOsd::drawOsd()
 int cSqueezeOsd::drawInfoBox()
 {
    LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
-   int step = fontStd->Height();
 
    // fill info box
 
@@ -433,13 +444,15 @@ int cSqueezeOsd::drawInfoBox()
       y += fontTilte->Height();
    }
 
-   pixmapInfo[pmText]->DrawText(cPoint(x, y), currentTrack->artist, clrWhite, clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
-   pixmapInfo[pmText]->DrawText(cPoint(x, y+=step), cString::sprintf("Genre: %s   Album: %s", currentTrack->genre, currentTrack->album), clrWhite, 
+   pixmapInfo[pmText]->DrawText(cPoint(x, y), currentTrack->artist, clrWhite, clrTransparent, fontArtist, pixmapInfo[pmText]->ViewPort().Width());
+   y += fontArtist->Height();
+   pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("Genre: %s   Album: %s", currentTrack->genre, currentTrack->album), clrWhite, 
                                 clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
-   pixmapInfo[pmText]->DrawText(cPoint(x, y+=step), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
+   y += fontStd->Height();
+   pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
                                 clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taCenter | taTop);
-
-   drawProgress(y+fontPl->Height());
+   y += fontPl->Height();
+   drawProgress(y);
 
    pixmapInfo[pmBack]->SetAlpha(ALPHA_OPAQUE);
    pixmapInfo[pmText]->SetAlpha(ALPHA_OPAQUE);
@@ -507,11 +520,17 @@ int cSqueezeOsd::drawPlaylist()
    static int lastCount = na;
    int y = 0;
 
+   cImage* imgSpeaker = 0;
+   int imgWH = pixmapPlCurrent[pmText]->ViewPort().Height() / 3.0 * 2.0;
+   int coverHeight = pixmapPlCurrent[pmText]->ViewPort().Height();
+   int imgX = pixmapPlCurrent[pmText]->ViewPort().Width() - imgWH;
+   int imgY = imgWH / 4;
+
    cPixmap::Lock();
 
    pixmapPlaylist[pmText]->Fill(clrTransparent);       // clear box
 
-   // set focus tu current if no user interactivity or if count changed
+   // set focus to current if no user interactivity or if count changed
 
    if (!plUserAction || lmc->getTrackCount() != lastCount)
    {
@@ -530,9 +549,6 @@ int cSqueezeOsd::drawPlaylist()
    {
       tColor color = clrTextDark;
 
-      if (i == currentState->plIndex)
-         color = clrWhite;
-
       if (i == plCurrent)
       {
          int ay = pixmapPlaylist[pmBack]->ViewPort().Y() + y;
@@ -541,14 +557,23 @@ int cSqueezeOsd::drawPlaylist()
                                                     pixmapPlCurrent[pmBack]->ViewPort().Width(), 
                                                     pixmapPlCurrent[pmBack]->ViewPort().Height()));
       }
-         
-      pixmapPlaylist[pmText]->DrawText(cPoint(0, y),
-                                       cString::sprintf("%s",lmc->getTrack(i)->title),
+
+      if (i == currentState->plIndex)
+      {
+         color = clrWhite;
+         drawSymbol("speaker.png", imgX, imgY+y, imgWH, imgWH, pixmapPlaylist[pmText]);
+      }
+
+      drawTrackCover(pixmapPlaylist[pmText], lmc->getTrack(i)->id, 0, y, coverHeight);
+
+      int x = coverHeight + border;
+      pixmapPlaylist[pmText]->DrawText(cPoint(x, y),
+                                       cString::sprintf("%s", lmc->getTrack(i)->title),
                                        color, clrTransparent, fontPl, pixmapPlaylist[pmText]->ViewPort().Width());
 
       y += fontPl->Height();
 
-      pixmapPlaylist[pmText]->DrawText(cPoint(0, y),
+      pixmapPlaylist[pmText]->DrawText(cPoint(x, y),
                                cString::sprintf("%s", lmc->getTrack(i)->artist), 
                                color, clrTransparent, fontPl, pixmapPlaylist[pmText]->ViewPort().Width());
 
@@ -561,6 +586,8 @@ int cSqueezeOsd::drawPlaylist()
 
    cPixmap::Unlock();
 
+   delete imgSpeaker;
+
    return done;
 }
 
@@ -570,6 +597,8 @@ int cSqueezeOsd::drawPlaylist()
 
 int cSqueezeOsd::drawStatus()
 {
+   char* name = 0;
+
    // fill status box
 
    cPixmap::Lock();
@@ -594,6 +623,52 @@ int cSqueezeOsd::drawStatus()
    pixmapStatus[pmText]->SetAlpha(ALPHA_OPAQUE);
 
    cPixmap::Unlock();
+
+   // draw status icons above the color buttons ..
+
+   y = pixmapBtnRed[pmBack]->ViewPort().Y() - 2*border - symbolBoxHeight;
+   x = 3 * border;
+
+   asprintf(&name, "%s.png", currentState->mode);
+   drawSymbol(name, x, y, symbolBoxHeight, symbolBoxHeight);
+   free(name);
+   
+   x += symbolBoxHeight + 3 * border;
+   asprintf(&name, "shuffle%d.png", currentState->plShuffle);
+   drawSymbol(name, x, y, symbolBoxHeight, symbolBoxHeight);
+   free(name);
+
+   x += symbolBoxHeight + 3 * border;
+   asprintf(&name, "repeat%d.png", currentState->plRepeat);
+   drawSymbol(name, x, y, symbolBoxHeight, symbolBoxHeight);
+   free(name);
+
+   return done;
+}
+
+//***************************************************************************
+// Draw Symbol
+//***************************************************************************
+
+int cSqueezeOsd::drawSymbol(const char* name, int x, int y, int width, int height,
+   cPixmap* pixmap)
+{
+   char* path = 0;
+   cImage* image = 0;
+
+   asprintf(&path, "%s/squeezebox/%s", confDir, name);
+   image = imgLoader->createImageFromFile(path, width, height, yes);
+
+   if (image)
+   {
+      if (pixmap)
+         pixmap->DrawImage(cPoint(x, y), *image);
+      else
+         osd->DrawImage(cPoint(x, y), *image);
+   }
+
+   free(path);
+   delete image;
 
    return done;
 }
@@ -647,6 +722,34 @@ int cSqueezeOsd::drawButtons()
 // Draw Cover
 //***************************************************************************
 
+int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, int tid, int x, int y, int size)
+{
+   MemoryStruct cover;
+
+   if (!osd)
+      return done;
+
+   lmc->getCover(&cover, tid);
+   storeFile(&cover, "/tmp/squeeze_track_cover.jpg");
+
+   if (imgLoader->loadImage("/tmp/squeeze_track_cover.jpg") == success)
+   {
+      cImage* image = imgLoader->createImage(size, size, yes);
+
+      if (image)
+      {
+         pixmap->DrawImage(cPoint(x, y), *image);
+         delete image;
+      }
+   }
+      
+   return done;
+}
+
+//***************************************************************************
+// Draw Cover
+//***************************************************************************
+
 int cSqueezeOsd::drawCover()
 {
    MemoryStruct cover;
@@ -659,14 +762,17 @@ int cSqueezeOsd::drawCover()
 
    if (imgLoader->loadImage("/tmp/squeeze_cover.jpg") == success)
    {
+      int coverAreaWidth = cOsd::OsdWidth() / 2;
+      int coverAreaHeight = cOsd::OsdHeight() - symbolBoxHeight - pixmapStatus[pmBack]->ViewPort().Height() - 3 * border;
       unsigned short border = 140;
-      unsigned short imgWidth = cOsd::OsdWidth() / 2 - 2 * border;
+      unsigned short imgWidthHeight = coverAreaWidth - 2 * border;
 
-      cImage* image = imgLoader->createImage(imgWidth, imgWidth, yes);
+      cImage* image = imgLoader->createImage(imgWidthHeight, imgWidthHeight, yes);
 
       if (image)
       {
-         osd->DrawImage(cPoint(border, border), *image);
+         osd->DrawRectangle(0, 0, coverAreaWidth, coverAreaHeight, clrBlack);
+         osd->DrawImage(cPoint(border, (coverAreaHeight-imgWidthHeight) / 2), *image);
          delete image;
       }
    }

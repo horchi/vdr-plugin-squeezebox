@@ -20,14 +20,16 @@ class cSqueezeControl : public cControl
 {
    public:
 
-      cSqueezeControl(cPluginSqueezebox* aPlugin);
+      cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aConfDir);
       virtual ~cSqueezeControl();
+
       virtual void Hide() { osdThread->hide(); };
       virtual cOsdObject* GetInfo() { return 0; }
       virtual eOSState ProcessKey(eKeys key);
 
    private:
 
+      char* confDir;
       cSqueezePlayer* player;
       LmcCom* lmc;
       cSqueezeOsd* osdThread;
@@ -39,14 +41,15 @@ class cSqueezeControl : public cControl
 // Squeeze Control
 //***************************************************************************
 
-cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin)
+cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aConfDir)
    : cControl(player = new cSqueezePlayer)
 {
    plugin = aPlugin;
-
+   
+   confDir = strdup(aConfDir);
    startDone = no;
    lmc = new LmcCom(cfg.mac);
-   osdThread = new cSqueezeOsd;
+   osdThread = new cSqueezeOsd(confDir);
    osdThread->Start();
 
    tell(eloAlways, "Trying connetion to '%s:%d', my mac is '%s'", cfg.lmcHost, cfg.lmcPort, cfg.mac);
@@ -67,6 +70,7 @@ cSqueezeControl::~cSqueezeControl()
 {
    lmc->save();
 
+   free(confDir);
    delete lmc;
    delete osdThread;
 }
@@ -142,6 +146,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
 
    return state;
 }
+
 //***************************************************************************
 // - PLUGIN - 
 //***************************************************************************
@@ -209,7 +214,7 @@ cOsdObject* cPluginSqueezebox::MainMenuAction()
       return new cSqueezeMenu(tr("Playlist"), lmcForMenu);
    }
 
-   cControl::Launch(new cSqueezeControl(this));
+   cControl::Launch(new cSqueezeControl(this, ConfigDirectory()));
 
    return 0;
 }

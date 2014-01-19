@@ -29,7 +29,7 @@ class cSqueezeOsd : public cThread
          pmCount
       };
 
-      cSqueezeOsd();
+      cSqueezeOsd(const char* aConfDir);
       virtual ~cSqueezeOsd();
 
       void view();
@@ -47,6 +47,8 @@ class cSqueezeOsd : public cThread
 
       int drawOsd();
       int drawCover();
+      int drawTrackCover(cPixmap* pixmap, int tid, int x, int y, int size);
+
       int drawInfoBox();
       int drawProgress(int y = na);
       int drawPlaylist();
@@ -56,11 +58,14 @@ class cSqueezeOsd : public cThread
       int createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
                     tColor color, tColor blend);
 
+      int drawSymbol(const char* name, int x, int y, int width, int height, cPixmap* pixmap = 0);
+
       // data
 
       cOsd* osd;
       LmcCom* lmc;
 
+      char* confDir;
       int visible;
       int forceNextDraw;
       int loopActive;
@@ -72,6 +77,9 @@ class cSqueezeOsd : public cThread
       int plItems;
       int plItemSpace;
       int plItemHeight;
+
+      int symbolBoxHeight;
+      int border;                 // border width in pixel
 
       cImageMagickWrapper* imgLoader;
       LmcCom::PlayerState* currentState;
@@ -88,6 +96,7 @@ class cSqueezeOsd : public cThread
 
       cFont* fontStd;
       cFont* fontTilte;
+      cFont* fontArtist;
       cFont* fontPl;
 
       tColor clrBox;
@@ -95,7 +104,6 @@ class cSqueezeOsd : public cThread
       tColor clrTextDark;
       
       cMyStatus* statusMonitor;
-      int border;    // border width in pixel
 };
 
 //***************************************************************************

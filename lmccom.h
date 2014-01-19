@@ -107,6 +107,8 @@ class LmcCom : public TcpChannel
       // cover
 
       int getCurrentCover(MemoryStruct* cover);
+      int getCover(MemoryStruct* cover, int trackId);
+
 
       // notification channel
 

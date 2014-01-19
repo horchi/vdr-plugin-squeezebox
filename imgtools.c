@@ -9,6 +9,17 @@ cImageMagickWrapper::cImageMagickWrapper()
    InitializeMagick(0);
 }
 
+cImage* cImageMagickWrapper::createImageFromFile(const char* path, int width, int height, bool preserveAspect)
+{
+   if (loadImage(path) != success)
+   {
+      tell(eloAlways, "Warning: Can't load image '%s', %m", path);
+      return 0;
+   }
+
+   return createImage(width, height, preserveAspect);
+}
+
 cImage* cImageMagickWrapper::createImage(int width, int height, bool preserveAspect) 
 {
    int w, h;
@@ -79,7 +90,7 @@ cImage cImageMagickWrapper::createImageCopy()
    return image;
 }
 
-int cImageMagickWrapper::loadImage(const char *fullpath) 
+int cImageMagickWrapper::loadImage(const char* fullpath) 
 {
    if (!fullpath || (strlen(fullpath) < 5))
       return fail;
@@ -90,16 +101,16 @@ int cImageMagickWrapper::loadImage(const char *fullpath)
    } 
    catch (Magick::Warning &warning) 
    {
-      dsyslog("nopacity: Magick Warning: %s", warning.what());
+      tell(eloAlways, "Magick Warning: %s", warning.what());
    } 
    catch (Magick::Error &error)
    {
-      dsyslog("nopacity: Magick Error: %s", error.what());
+      tell(eloAlways,"Magick Error: %s", error.what());
       return fail;
    } 
    catch (...)
    {
-      dsyslog("nopacity: an unknown Magick error occured during image loading");
+      tell(eloAlways, "an unknown Magick error occured during image loading");
       return fail;
    }
 

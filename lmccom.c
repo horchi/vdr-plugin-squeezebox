@@ -136,8 +136,8 @@ int LmcCom::update(int stateOnly)
          case LmcTag::tPlaylistCurIndex: playerState.plIndex  = atoi(value);   break;
          case LmcTag::tPlaylistShuffle:  playerState.plShuffle = atoi(value);  break;
          case LmcTag::tPlaylistRepeat:   playerState.plRepeat = atoi(value);   break;
-         case LmcTag::tMode:         snprintf(playerState.mode, sizeof(playerState.mode), "%s", value);     break;
-         case LmcTag::tPlaylistName: snprintf(playerState.plName, sizeof(playerState.plName), "%s", value); break;
+         case LmcTag::tMode:             snprintf(playerState.mode, sizeof(playerState.mode), "%s", value);     break;
+         case LmcTag::tPlaylistName:     snprintf(playerState.plName, sizeof(playerState.plName), "%s", value); break;
 
          // playlist tags ...
 
@@ -480,6 +480,25 @@ int LmcCom::getCurrentCover(MemoryStruct* cover)
    
    asprintf(&url, "http://%s:%d/music/current/cover.jpg?player=%s", 
             host, 9000, escId);
+
+   downloadFile(url, cover);
+
+   free(url);
+
+   return success;
+}
+//***************************************************************************
+// Get Cover
+//***************************************************************************
+
+int LmcCom::getCover(MemoryStruct* cover, int trackId)
+{
+   char* url = 0;
+
+   // http://<server>:<port>/music/<track_id>/cover.jpg
+
+   asprintf(&url, "http://%s:%d/music/%d/cover.jpg", 
+            host, 9000, trackId);
 
    downloadFile(url, cover);
 
