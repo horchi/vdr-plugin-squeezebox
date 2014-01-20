@@ -35,6 +35,7 @@ class cSqueezeControl : public cControl
       cSqueezeOsd* osdThread;
       cPluginSqueezebox* plugin;
       int startDone;
+      int buttonLevel;
 };
 
 //***************************************************************************
@@ -45,7 +46,8 @@ cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aConfDi
    : cControl(player = new cSqueezePlayer)
 {
    plugin = aPlugin;
-   
+  
+   buttonLevel = 0; 
    confDir = strdup(aConfDir);
    startDone = no;
    lmc = new LmcCom(cfg.mac);
@@ -81,7 +83,7 @@ cSqueezeControl::~cSqueezeControl()
 
 eOSState cSqueezeControl::ProcessKey(eKeys key)
 {
-   eOSState state = cControl::ProcessKey(key);
+   eOSState state = osContinue; // cControl::ProcessKey(key);
 
    if (!startDone && player->started())
    {
@@ -89,9 +91,11 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       lmc->resume();
    }
 
-   if (key >= k0 && key <= k9)
+   if (key > k0 && key <= k9)
    {
       lmc->track(key - k0);
+
+      return osContinue;
    }
 
    switch (key)
@@ -109,10 +113,8 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       case kPlayPause:
       case kPause:    lmc->pausePlay();  break;
       case kPlay:     lmc->play();       break;
-      case kFastRew:
-      case kGreen:    lmc->scroll(-10);  break;
-      case kFastFwd:
-      case kYellow:   lmc->scroll(10);   break;
+      case kFastRew:  lmc->scroll(-10);  break;
+      case kFastFwd:  lmc->scroll(10);   break;
       case kNext:     
       case kChanUp:   lmc->nextTrack();  break;
       case kPrev:
@@ -122,26 +124,65 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       case kVolUp:    lmc->volumeUp();   break;
       case kVolDn:    lmc->volumeDown(); break;
 
-      case kRed:   plugin->activateMenu(lmc);  break;
-
       case kOk:    osdThread->ProcessKey(key); break;
       case kUp:    osdThread->ProcessKey(key); break;
       case kDown:  osdThread->ProcessKey(key); break;
       case kLeft:  osdThread->ProcessKey(key); break;
       case kRight: osdThread->ProcessKey(key); break;
 
+      case k0:
+      {
+         buttonLevel = buttonLevel == 0 ? 1 : 0;
+         osdThread->setButtonLevel(buttonLevel);
+         break;
+      }
+      
+      case kRed:
+      {
+         if (buttonLevel == 0)
+            plugin->activateMenu(lmc); 
+         else
+            lmc->shuffle();
+
+         break;
+      }
+
+      case kGreen:
+      {
+         if (buttonLevel == 0)
+            lmc->scroll(-10);
+         else
+            lmc->repeat();
+
+         break;
+      }
+
+      case kYellow:
+      {
+         if (buttonLevel == 0)
+            lmc->scroll(10);
+         else
+            lmc->volumeDown();
+         break;
+      }
+
       case kBlue:
       {
-         if (osdThread->playlistCount())
-            lmc->clear();
+         if (buttonLevel == 0)
+         {
+            if (osdThread->playlistCount())
+               lmc->clear();
+            else
+               lmc->randomTracks();
+         }
          else
-            lmc->randomTracks();
+            lmc->volumeUp();
 
          break;
       }
 
       default:
-         state = osContinue;
+         return cControl::ProcessKey(key);
    }
 
    return state;

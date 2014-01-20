@@ -56,7 +56,8 @@ cSqueezeOsd::cSqueezeOsd(const char* aConfDir)
    plItemHeight = 0;
    confDir = strdup(aConfDir);
    symbolBoxHeight = 100;
-   
+   buttonLevel = 0;
+
    statusMonitor = new cMyStatus(this);
 
    osd = 0;
@@ -156,7 +157,7 @@ void cSqueezeOsd::hide()
 int cSqueezeOsd::ProcessKey(int key)
 {
    switch (key)
-   {       
+   {
       case kUp:
       {
          if (plCurrent > 0)
@@ -395,7 +396,7 @@ int cSqueezeOsd::drawOsd()
 {
    tell(eloDetail, "Draw OSD");
 
-   // set alpha to force redraw of background boxes :(
+   // set alpha to force redraw of background boxes
 
    pixmapInfo[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
    pixmapPlaylist[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
@@ -688,19 +689,19 @@ int cSqueezeOsd::drawButtons()
    pixmapBtnYellow[pmText]->Fill(clrTransparent);
    pixmapBtnBlue[pmText]->Fill(clrTransparent);  
 
-   pixmapBtnRed[pmText]->DrawText(cPoint(0, 0), "Menu", 
+   pixmapBtnRed[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? "Menu" : "Shuffle",
                                   clrWhite, clrTransparent, fontStd, 
                                   pixmapBtnRed[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), "<<", 
+   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? "<<" : "Repeat", 
                                     clrWhite, clrTransparent, fontStd, 
                                     pixmapBtnGreen[pmText]->ViewPort().Width(), 0, taCenter | taTop);
    
-   pixmapBtnYellow[pmText]->DrawText(cPoint(0, 0), ">>", 
+   pixmapBtnYellow[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? ">>" : "Vol-",
                                      clrWhite, clrTransparent, fontStd, 
                                      pixmapBtnYellow[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), currentState->plCount ? "Clear" : "Random", 
+   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? (currentState->plCount ? "Clear" : "Random") : "Vol+", 
                                    clrWhite, clrTransparent, fontStd, 
                                    pixmapBtnBlue[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 

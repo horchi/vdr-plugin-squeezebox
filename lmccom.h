@@ -100,6 +100,8 @@ class LmcCom : public TcpChannel
       int open(const char* host = "localhost", unsigned short port = 9090);
 
       int execute(const char* command, const char* par = "");
+      int execute(const char* command, int par);
+
       int query(const char* command, char* response, int max);
       int queryRange(const char* command, int from, int count, RangeList* list, int& total);
       int queryInt(const char* command, int& value);
@@ -131,6 +133,8 @@ class LmcCom : public TcpChannel
       int save()           { return execute("playlist save", escId); }
       int resume()         { return execute("playlist resume", escId); }
       int randomTracks()   { return execute("randomplay tracks"); }
+      int shuffle()        { return execute("playlist shuffle"); }
+      int repeat()         { return execute("playlist repeat"); }
 
       int scroll(short step) 
       { 

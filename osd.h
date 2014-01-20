@@ -37,8 +37,10 @@ class cSqueezeOsd : public cThread
       void Action();
       void stop();
 
-      void setForce()          { forceNextDraw = yes; }
-      int playlistCount()      { return currentState->plCount; }
+      void setForce()                { forceNextDraw = yes; }
+      void setButtonLevel(int level) { buttonLevel = level; forceNextDraw = yes; }
+
+      int playlistCount()            { return currentState->plCount; }
       int ProcessKey(int key);
 
    protected:
@@ -65,6 +67,7 @@ class cSqueezeOsd : public cThread
       cOsd* osd;
       LmcCom* lmc;
 
+      int buttonLevel;
       char* confDir;
       int visible;
       int forceNextDraw;
@@ -73,7 +76,7 @@ class cSqueezeOsd : public cThread
       int plUserAction;
       int plTop;
       time_t lastScrollAt;
-
+      
       int plItems;
       int plItemSpace;
       int plItemHeight;

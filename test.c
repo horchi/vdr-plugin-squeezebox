@@ -119,6 +119,10 @@ int main(int argc, char** argv)
    lmc->update();
    player = lmc->getPlayerState();
 
+   lmc->repeat();
+   lmc->repeat();
+   lmc->repeat();
+
    if (strcmp(player->mode, "stop") == 0)
    {
 //      tell(0, "--------------------------");

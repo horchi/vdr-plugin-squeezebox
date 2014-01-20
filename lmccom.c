@@ -295,6 +295,16 @@ int LmcCom::execute(const char* command, const char* par)
    return response();
 }
 
+int LmcCom::execute(const char* command, int par)
+{
+   LmcLock;
+   char str[10];
+
+   sprintf(str, "%d", par);
+   
+   return execute(command, str);
+}
+
 //***************************************************************************
 // Request
 //***************************************************************************
