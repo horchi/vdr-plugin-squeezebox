@@ -59,7 +59,7 @@ class cSqueezeOsd : public cThread
       int drawVolume(int x, int y, int width);
 
       int createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
-                    tColor color, tColor blend);
+                    tColor color, tColor blend, int radius);
 
       int drawSymbol(const char* name, int x, int y, int width, int height, cPixmap* pixmap = 0);
 

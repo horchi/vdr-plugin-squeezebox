@@ -344,18 +344,18 @@ int cSqueezeOsd::init()
       tell(eloDebug, "calculated %d items with a space of %d, hight is %d", 
            plItems, plItemSpace, (plHeight-2*border));
 
-      createBox(pixmapInfo, leftX, border, width, ifoHeight, clrBox, clrBoxBlend);
-      createBox(pixmapPlaylist, leftX, plY, width, plHeight, clrBox, clrBoxBlend);
-      createBox(pixmapPlCurrent, leftX, plY, width, plItemHeight, clrBox, clrWhite);
-      createBox(pixmapStatus, leftX, stY, width, stHeight, clrBox, clrBoxBlend);
+      createBox(pixmapInfo, leftX, border, width, ifoHeight, clrBox, clrBoxBlend, 25);
+      createBox(pixmapPlaylist, leftX, plY, width, plHeight, clrBox, clrBoxBlend, 25);
+      createBox(pixmapPlCurrent, leftX, plY, width, plItemHeight, clrBox, clrWhite, 25);
+      createBox(pixmapStatus, leftX, stY, width, stHeight, clrBox, clrBoxBlend, 25);
 
-      createBox(pixmapBtnRed, btnX, stY, btnWidth, stHeight, 0xFF990000, 0xFFFF0000);
+      createBox(pixmapBtnRed, btnX, stY, btnWidth, stHeight, 0xFF990000, 0xFFFF0000, 10);
       btnX += btnWidth + border;
-      createBox(pixmapBtnGreen, btnX, stY, btnWidth, stHeight, 0xFF009900, 0xFF00EE00);
+      createBox(pixmapBtnGreen, btnX, stY, btnWidth, stHeight, 0xFF009900, 0xFF00EE00, 10);
       btnX += btnWidth + border;
-      createBox(pixmapBtnYellow, btnX, stY, btnWidth, stHeight, 0xFF999900, 0xFFEEEE00);
+      createBox(pixmapBtnYellow, btnX, stY, btnWidth, stHeight, 0xFF999900, 0xFFEEEE00, 10);
       btnX += btnWidth + border;
-      createBox(pixmapBtnBlue, btnX, stY, btnWidth, stHeight, clrBox, clrBoxBlend);
+      createBox(pixmapBtnBlue, btnX, stY, btnWidth, stHeight, clrBox, clrBoxBlend, 10);
 
       symbolBoxHeight = btnWidth / 2;
    }
@@ -368,7 +368,7 @@ int cSqueezeOsd::init()
 //***************************************************************************
 
 int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
-                           tColor color, tColor blend)
+                           tColor color, tColor blend, int radius)
 {
    cPixmap::Lock();
 
@@ -378,7 +378,7 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
    pixmap[pmBack]->Fill(color);
    DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, true);
    DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, false);
-   DrawRoundedCorners(pixmap[pmBack], 25, 0, 0, width, height);
+   DrawRoundedCorners(pixmap[pmBack], radius, 0, 0, width, height);
 
    // front/text pixmap
 
@@ -472,18 +472,21 @@ int cSqueezeOsd::drawInfoBox()
 int cSqueezeOsd::drawProgress(int y)
 {
    static int yLast = 0;
+   static int lastTime = 0;
 
+   int time;
    LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
 
    if (y != na)  yLast = y;
 
    if (strcmp(currentState->mode, "play") != 0 || !currentTrack || !currentTrack->duration)
-      return done;
+      time = lastTime;
+   else
+      lastTime = time = currentState->trackTime + (cTimeMs::Now() - currentState->updatedAt) / 1000;
 
    const cRect rect = pixmapInfo[pmText]->ViewPort();
 
    int total = currentTrack->duration;
-   int time = currentState->trackTime + (cTimeMs::Now() - currentState->updatedAt) / 1000;
    int remaining = total - time;
 
    cString begin = cString::sprintf("%d:%02d", time/tmeSecondsPerMinute, time%tmeSecondsPerMinute);
