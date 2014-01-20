@@ -56,6 +56,7 @@ class cSqueezeOsd : public cThread
       int drawPlaylist();
       int drawStatus();
       int drawButtons();
+      int drawVolume(int x, int y, int width);
 
       int createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
                     tColor color, tColor blend);

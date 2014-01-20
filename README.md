@@ -38,11 +38,7 @@ Installation:
   #> make
   #> make install
 
-  install plugin config files
-
-  #> mkdir <plugin-conf-path>/squeezebox
-  #> cp ./config/* <plugin-conf-path>/squeezebox/
-  #> chown -R <vdr-user> <plugin-conf-path>/squeezebox
+  may be you have to fix the access rights of <plugin-conf-path>/squeezebox 
 
 
 2. softhddevice Patch

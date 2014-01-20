@@ -42,6 +42,10 @@ ifdef DEBUG
   CFLAGS += -ggdb -O0
 endif
 
+### The plugin config directory 
+
+export CFGDIR = $(call PKGCFG,configdir)/plugins/$(PLUGIN)/
+
 ### The version number of VDR's plugin API:
 
 APIVERSION = $(call PKGCFG,apiversion)
@@ -130,7 +134,12 @@ $(SOFILE): $(OBJS)
 install-lib: $(SOFILE)
 	install -D $^ $(DESTDIR)$(LIBDIR)/$^.$(APIVERSION)
 
-install: install-lib install-i18n
+install-cfg:
+	mkdir -p "$(CFGDIR)"
+	chmod 755 "$(CFGDIR)"
+	install --mode=644 -D ./config/* $(CFGDIR)
+
+install: install-lib install-i18n install-cfg
 
 dist: $(I18Npo) clean
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)
@@ -141,7 +150,7 @@ dist: $(I18Npo) clean
 	@echo Distribution package created as $(PACKAGE).tgz
 
 clean:
-	@-rm -f $(PODIR)/*.mo $(PODIR)/*.pot
+	@-rm -f $(PODIR)/*.mo $(PODIR)/*.pot $(PODIR)/*~
 	@-rm -f $(OBJS) $(DEPFILE) *.so *.tgz core* *~ lib/*~ lib/*.o tt
 
 tt: test.c lmccom.c lib/tcpchannel.c lib/common.c

@@ -261,7 +261,7 @@ void cSqueezeOsd::Action()
 
       // check for notification with 100ms timeout
 
-      changesPending = lmc->checkNotify(100) == success;
+      changesPending = lmc->checkNotify(50) == success;
 
       tell(eloDebug, "looping ... (%d) (%d)", changesPending, forceNextDraw);
 
@@ -356,6 +356,8 @@ int cSqueezeOsd::init()
       createBox(pixmapBtnYellow, btnX, stY, btnWidth, stHeight, 0xFF999900, 0xFFEEEE00);
       btnX += btnWidth + border;
       createBox(pixmapBtnBlue, btnX, stY, btnWidth, stHeight, clrBox, clrBoxBlend);
+
+      symbolBoxHeight = btnWidth / 2;
    }
 
    return done;
@@ -494,7 +496,7 @@ int cSqueezeOsd::drawProgress(int y)
    int off = barWidth - ((barWidth / 100.0) * percent);
    int barHeight = fontStd->Height();
 
-   // crear area
+   // clear area
 
    pixmapInfo[pmText]->DrawRectangle(cRect(0, yLast, rect.Width(), barHeight), clrTransparent);
       
@@ -634,42 +636,41 @@ int cSqueezeOsd::drawStatus()
    drawSymbol(name, x, y, symbolBoxHeight, symbolBoxHeight);
    free(name);
    
-   x += symbolBoxHeight + 3 * border;
+   x += symbolBoxHeight + 2 * border;
    asprintf(&name, "shuffle%d.png", currentState->plShuffle);
    drawSymbol(name, x, y, symbolBoxHeight, symbolBoxHeight);
    free(name);
 
-   x += symbolBoxHeight + 3 * border;
+   x += symbolBoxHeight + 2 * border;
    asprintf(&name, "repeat%d.png", currentState->plRepeat);
    drawSymbol(name, x, y, symbolBoxHeight, symbolBoxHeight);
    free(name);
+
+   x += symbolBoxHeight + 4 * border;
+   drawVolume(x, y, ((cOsd::OsdWidth() - 3 * border) / 2)  - x - 4*border);
 
    return done;
 }
 
 //***************************************************************************
-// Draw Symbol
+// Draw Volume
 //***************************************************************************
 
-int cSqueezeOsd::drawSymbol(const char* name, int x, int y, int width, int height,
-   cPixmap* pixmap)
+int cSqueezeOsd::drawVolume(int x, int y, int width)
 {
-   char* path = 0;
-   cImage* image = 0;
+   double percent = currentState->volume / (100 / 100.0);
+   int off = width - ((width / 100.0) * percent);
+   int barHeight = fontPl->Height();
 
-   asprintf(&path, "%s/squeezebox/%s", confDir, name);
-   image = imgLoader->createImageFromFile(path, width, height, yes);
+   y = y + (symbolBoxHeight - barHeight) / 2;
 
-   if (image)
-   {
-      if (pixmap)
-         pixmap->DrawImage(cPoint(x, y), *image);
-      else
-         osd->DrawImage(cPoint(x, y), *image);
-   }
+   osd->DrawText(x, y-fontPl->Height(), tr("Volume"), clrWhite, clrBlack, fontPl, width, 0, taTop|taCenter);
 
-   free(path);
-   delete image;
+   // progess bar
+
+   osd->DrawRectangle(x,   y,   x+width, y+barHeight, clrWhite);
+   osd->DrawRectangle(x+1, y+1, x+1+width-2, y+1+barHeight-2, 0xFF303060);
+   osd->DrawRectangle(x+3, y+3, x+3+width-off-6, y+3+barHeight-6, clrWhite);
 
    return done;
 }
@@ -689,19 +690,19 @@ int cSqueezeOsd::drawButtons()
    pixmapBtnYellow[pmText]->Fill(clrTransparent);
    pixmapBtnBlue[pmText]->Fill(clrTransparent);  
 
-   pixmapBtnRed[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? "Menu" : "Shuffle",
+   pixmapBtnRed[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? tr("Menu") : tr("Shuffle"),
                                   clrWhite, clrTransparent, fontStd, 
                                   pixmapBtnRed[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? "<<" : "Repeat", 
+   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? tr("<<") : tr("Repeat"), 
                                     clrWhite, clrTransparent, fontStd, 
                                     pixmapBtnGreen[pmText]->ViewPort().Width(), 0, taCenter | taTop);
    
-   pixmapBtnYellow[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? ">>" : "Vol-",
+   pixmapBtnYellow[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? tr(">>") : tr("Vol-"),
                                      clrWhite, clrTransparent, fontStd, 
                                      pixmapBtnYellow[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? (currentState->plCount ? "Clear" : "Random") : "Vol+", 
+   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? (currentState->plCount ? tr("Clear") : tr("Random")) : tr("Vol+"), 
                                    clrWhite, clrTransparent, fontStd, 
                                    pixmapBtnBlue[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
@@ -779,4 +780,31 @@ int cSqueezeOsd::drawCover()
    }
 
    return success;
+}
+
+//***************************************************************************
+// Draw Symbol
+//***************************************************************************
+
+int cSqueezeOsd::drawSymbol(const char* name, int x, int y, int width, int height,
+   cPixmap* pixmap)
+{
+   char* path = 0;
+   cImage* image = 0;
+
+   asprintf(&path, "%s/squeezebox/%s", confDir, name);
+   image = imgLoader->createImageFromFile(path, width, height, yes);
+
+   if (image)
+   {
+      if (pixmap)
+         pixmap->DrawImage(cPoint(x, y), *image);
+      else
+         osd->DrawImage(cPoint(x, y), *image);
+   }
+
+   free(path);
+   delete image;
+
+   return done;
 }
