@@ -4,7 +4,7 @@ vdr-plugin-squeezebox
 
 Copyright:            Jörg Wendel / horchi (vdr@jwendel.de)
 Project's homepage:   https://github.com/horchi/vdr-plugin-squeezebox
-Latest version at:    git clone git@github.com:horchi/vdr-plugin-squeezebox
+Latest version at:    git clone https://github.com/horchi/vdr-plugin-squeezebox
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ Installation:
 
 1. Plugin
   
-  #> git clone git@github.com:horchi/vdr-plugin-squeezebox
+  #> git clone https://github.com/horchi/vdr-plugin-squeezebox
   #> cd vdr-plugin-squeezebox
   #> make
   #> make install
@@ -91,3 +91,11 @@ Configuration:
 
   The possible setting of audioDevice are shown by calling:
   #> squeezelite -l
+
+
+Handling:
+---------
+
+Should intuitive ;)
+
+- key 0 changes the color button setting
