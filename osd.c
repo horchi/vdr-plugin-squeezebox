@@ -345,10 +345,10 @@ int cSqueezeOsd::init()
       tell(eloDebug, "calculated %d items with a space of %d, hight is %d", 
            plItems, plItemSpace, (plHeight-2*border));
 
-      createBox(pixmapInfo, leftX, border, width, ifoHeight, clrBox, clrBoxBlend, 25);
-      createBox(pixmapPlaylist, leftX, plY, width, plHeight, clrBox, clrBoxBlend, 25);
-      createBox(pixmapPlCurrent, leftX, plY, width, plItemHeight, clrBox, clrWhite, 25);
-      createBox(pixmapStatus, leftX, stY, width, stHeight, clrBox, clrBoxBlend, 25);
+      createBox(pixmapInfo, leftX, border, width, ifoHeight, clrBox, clrBoxBlend, 15);
+      createBox(pixmapPlaylist, leftX, plY, width, plHeight, clrBox, clrBoxBlend, 15);
+      createBox(pixmapPlCurrent, leftX, plY, width, plItemHeight, clrBox, clrWhite, 15);
+      createBox(pixmapStatus, leftX, stY, width, stHeight, clrBox, clrBoxBlend, 15);
 
       createBox(pixmapBtnRed, btnX, stY, btnWidth, stHeight, 0xFF990000, 0xFFFF0000, 10);
       btnX += btnWidth + border;

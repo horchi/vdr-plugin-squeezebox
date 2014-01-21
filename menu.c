@@ -14,7 +14,7 @@ enum FilterType
    ftAlbum          = 4,
    ftYear           = 8,
    
-   ftCombined       = 16
+   ftCombined       = 16,
    ftGenreAlbum     = ftCombined,
 
    ftOther          = 256,
