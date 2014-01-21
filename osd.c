@@ -208,7 +208,7 @@ int cSqueezeOsd::ProcessKey(int key)
 
       case kOk: 
       {
-         if (plCurrent > na && plCurrent < lmc->getTrackCount()-1)
+         if (plCurrent > na && plCurrent < lmc->getTrackCount())
          {
             plUserAction = no;
             lmc->track(plCurrent);
