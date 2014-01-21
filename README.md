@@ -26,7 +26,7 @@ Requirements:
 - libmagick++-dev
 - running and reachable LMC in your network (see below)
 - squeezelite (see below)
-
+- a output device wich supports true color OSD
 
 Installation:
 -------------
@@ -54,16 +54,16 @@ Installation:
   I don't know the behavior of pmAudioOnlyBlack relating to other output plugins like xine ...
 
 
-3. LMC - Logitech Media Server
+3. LMS - Logitech Media Server
 
-  Install the LMC on your server
+  Install the LMS on your server
 
     Logitech Version: http://www.mysqueezebox.com/download
     or the fork:      http://downloads.slimdevices.com/nightly/ (ich verwende aktuell die 7.8.0)
 
   Configure it via the WEB interface
 
-4. squeezelite - streaming client for the LMC
+4. squeezelite - streaming client for the LMS
 
   squeezelite is the the streming client used by the plugin
   Requirements: libalsa-dev libasound2-dev libflac-dev libmad0-dev libvorbis-dev libfaad-dev libmpg123-dev

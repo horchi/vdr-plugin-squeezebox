@@ -29,7 +29,8 @@ class cMyStatus : public cStatus
 
    protected:
       
-      virtual void OsdClear(void) { osd->setForce(); }
+      virtual void OsdClear(void)                       { osd->setForce(); }
+      virtual void SetVolume(int Volume, bool Absolute) { osd->setForce(); }
       
    private:
       
@@ -261,7 +262,7 @@ void cSqueezeOsd::Action()
 
       // check for notification with 100ms timeout
 
-      changesPending = lmc->checkNotify(50) == success;
+      changesPending = lmc->checkNotify(100) == success;
 
       tell(eloDebug, "looping ... (%d) (%d)", changesPending, forceNextDraw);
 
