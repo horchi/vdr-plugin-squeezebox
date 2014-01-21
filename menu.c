@@ -9,12 +9,17 @@
 
 enum FilterType
 {
-   ftGenre,
-   ftArtist,
-   ftAlbum,
-   ftYear,
-   ftPlaylist,
-   ftRandomTracks
+   ftGenre          = 1,
+   ftArtist         = 2,
+   ftAlbum          = 4,
+   ftYear           = 8,
+   
+   ftCombined       = 16
+   ftGenreAlbum     = ftCombined,
+
+   ftOther          = 256,
+   ftPlaylist       = ftOther,
+   ftRandomTracks   = 512 
 };
 
 //***************************************************************************
@@ -70,15 +75,22 @@ cSubMenu::cSubMenu(const char* title, LmcCom* aLmc, FilterType tp, const char* a
 
    Clear();
 
-   if (lmc && lmc->queryRange(query, 0, 200,  &list, total) == success)
+   if (type < ftCombined)
    {
-      LmcCom::RangeList::iterator it;
-
-      for (it = list.begin(); it != list.end(); ++it)
-         cOsdMenu::Add(new cSubMenuItem((*it).c_str()));
-
-      if (total > 200)
-         tell(eloAlways, "Warning: [%s] %d more, only 200 supported", query, total-200);
+      if (lmc && lmc->queryRange(query, 0, 200, &list, total) == success)
+      {
+         LmcCom::RangeList::iterator it;
+         
+         for (it = list.begin(); it != list.end(); ++it)
+            cOsdMenu::Add(new cSubMenuItem((*it).c_str()));
+         
+         if (total > 200)
+            tell(eloAlways, "Warning: [%s] %d more, only 200 supported", query, total-200);
+      }
+   }
+   else
+   {
+      
    }
 
    SetHelp(0, tr("play"), tr("append"), 0);
