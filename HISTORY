@@ -1,12 +1,17 @@
 VDR Plugin 'squeezebox' Revision History
 ----------------------------------------
 
+2014-01-24: Version 0.0.6
+  - added   menu structure like LMCs WEBIF
+  - change  PNGs stored in resdir (instead of cfgdir)
+  - added   DEST target to make install
+
 2014-01-20: Version 0.0.5
-  - added osd redraw on vdr volume dispay
+  - added   osd redraw on vdr volume dispay
 
 2014-01-20: Version 0.0.4
-  - chaged color button radius
-  - view of progress bar even replay is paused
+  - chaged  color button radius
+  - change  view of progress bar even replay is paused
 
 2014-01-20: Version 0.0.3
   - First release

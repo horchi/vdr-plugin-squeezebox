@@ -11,6 +11,7 @@
 #include <curl/curl.h>
 #include <vector>
 #include <list>
+#include <string>
 
 using std::vector;
 
@@ -35,7 +36,18 @@ class LmcCom : public TcpChannel
 {
    public:
 
-      typedef std::list<std::string> RangeList;
+      struct ListItem
+      {
+          ListItem()     { clear(); }
+          void clear()   { id = na; content = ""; }
+          int isEmpty()  { return id == na || content == ""; }
+
+          int id;
+          std::string content;
+      };
+
+      typedef std::list<ListItem> RangeList;
+      typedef std::list<std::string> Parameters;
 
       enum Misc
       {
@@ -99,11 +111,13 @@ class LmcCom : public TcpChannel
 
       int open(const char* host = "localhost", unsigned short port = 9090);
 
-      int execute(const char* command, const char* par = "");
+      int execute(const char* command, Parameters* pars = 0);
       int execute(const char* command, int par);
+      int execute(const char* command, const char* par);
 
       int query(const char* command, char* response, int max);
-      int queryRange(const char* command, int from, int count, RangeList* list, int& total);
+      int queryRange(const char* command, int resultTag, int from, int count, 
+                     RangeList* list, int& total, Parameters* pars = 0);
       int queryInt(const char* command, int& value);
 
       // cover
@@ -179,18 +193,30 @@ class LmcCom : public TcpChannel
          return status;
       }
 
-      int loadPlaylist(const char* playlist)     { return ctrlPlaylist("load", playlist); }
-      int appendPlaylist(const char* playlist)   { return ctrlPlaylist("add", playlist); }
-
-      int ctrlPlaylist(const char* command, const char* playlist)
+      int loadPlaylist(const char* playlist)
       { 
-         int status;
-         char* cmd; 
-         asprintf(&cmd, "playlistcontrol cmd:%s playlist_name:%s", command, escape(playlist));
-         status = execute(cmd);
-         return status;
+         char par[500];
+         Parameters pars;
+
+         pars.push_back("cmd:load");
+         sprintf(par, "playlist_name:%s", playlist);
+         pars.push_back(par);
+
+         return execute("playlistcontrol", &pars);
       }
-      
+
+      int appendPlaylist(const char* playlist)
+      { 
+         char par[500];
+         Parameters pars;
+
+         pars.push_back("cmd:add");
+         sprintf(par, "playlist_name:%s", playlist);
+         pars.push_back(par);
+
+         return execute("playlistcontrol", &pars);
+      }
+
       // infos
 
       int update(int stateOnly = no);
@@ -215,7 +241,9 @@ class LmcCom : public TcpChannel
 
    private:
 
-      int request(const char* command, const char* par = "");
+      int request(const char* command, Parameters* par = 0);
+      int request(const char* command, const char* par);
+
       int response(char* response = 0, int max = 0);
 
       // data
@@ -227,7 +255,7 @@ class LmcCom : public TcpChannel
 
       CURL* curl;
       char lastCommand[sizeMaxCommand+TB];
-      char* lastPar;
+      std::string lastPar;
 
       TrackInfo dummyTrack;
       TrackInfo currentTrack;

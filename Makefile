@@ -42,9 +42,10 @@ ifdef DEBUG
   CFLAGS += -ggdb -O0
 endif
 
-### The plugin config directory 
+### The plugin config/resource directory 
 
 export CFGDIR = $(call PKGCFG,configdir)/plugins/$(PLUGIN)/
+export RESDIR = $(call PKGCFG,resdir)/plugins/$(PLUGIN)/
 
 ### The version number of VDR's plugin API:
 
@@ -134,12 +135,12 @@ $(SOFILE): $(OBJS)
 install-lib: $(SOFILE)
 	install -D $^ $(DESTDIR)$(LIBDIR)/$^.$(APIVERSION)
 
-install-cfg:
-	mkdir -p "$(CFGDIR)"
-	chmod 755 "$(CFGDIR)"
-	install --mode=644 -D ./config/* $(CFGDIR)
+install-res:
+	mkdir -p "$(DESTDIR)$(RESDIR)"
+	chmod 755 "$(DESTDIR)$(RESDIR)"
+	install --mode=644 -D ./config/* $(DESTDIR)$(RESDIR)
 
-install: install-lib install-i18n install-cfg
+install: install-lib install-i18n install-res
 
 dist: $(I18Npo) clean
 	@-rm -rf $(TMPDIR)/$(ARCHIVE)

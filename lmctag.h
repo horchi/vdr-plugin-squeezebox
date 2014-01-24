@@ -84,12 +84,18 @@ class LmcTag
          tTrackDuration,
          tCoverid,
          tAlbum,
+         tYear,
          tUrl,
          
          // tags of list range queries like 'genre 0 10'
 
          tItemCount,
          tPlaylist,
+         tGenreId,
+         tArtistId,
+         tAlbumId,
+         tTrack,
+         tTrackId,
 
          // technical stuff ..
 

@@ -64,10 +64,18 @@ const char* LmcTag::tags[] =
    "duration",
    "coverid",
    "album",
+   "year",
    "url",
+
+   // tags of list range queries like 'genre 0 10'
 
    "count",
    "playlist",
+   "genre_id",
+   "artist_id",
+   "album_id",
+   "track",
+   "track_id",
 
    0
 };

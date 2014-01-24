@@ -29,7 +29,7 @@ class cSqueezeOsd : public cThread
          pmCount
       };
 
-      cSqueezeOsd(const char* aConfDir);
+      cSqueezeOsd(const char* aResDir);
       virtual ~cSqueezeOsd();
 
       void view();
@@ -69,7 +69,7 @@ class cSqueezeOsd : public cThread
       LmcCom* lmc;
 
       int buttonLevel;
-      char* confDir;
+      char* resDir;
       int visible;
       int forceNextDraw;
       int loopActive;

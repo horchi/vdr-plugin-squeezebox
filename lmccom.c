@@ -32,7 +32,7 @@ LmcCom::LmcCom(const char* aMac)
    escId = 0;
 
    *lastCommand = 0;
-   lastPar = 0;
+   lastPar = "";
 
    if (!isEmpty(aMac))
    {
@@ -50,7 +50,6 @@ LmcCom::~LmcCom()
    free(host);
    free(mac);
    free(escId);
-   free(lastPar);
 }
 
 //***************************************************************************
@@ -223,23 +222,26 @@ int LmcCom::queryInt(const char* command, int& value)
 // Query Range
 //***************************************************************************
 
-int LmcCom::queryRange(const char* command, int from, int count, RangeList* list, int& total)
+int LmcCom::queryRange(const char* command, int resultTag, int from, int count, 
+                       RangeList* list, int& total, Parameters* pars)
 {
    LmcLock;
 
    const int maxResult = 10000;
    const int maxValue = 100;
    char value[maxValue+TB];
-   char content[maxValue+TB]; *content = 0;
    int tag;
-   int id = na;
    char result[maxResult+TB];
    char cmd[200];
    LmcTag lt(this);
    int status;
+   ListItem item;
+
+   if (resultTag == LmcTag::tTrack)
+      resultTag = LmcTag::tTitle;
 
    snprintf(cmd, 200, "%s %d %d", command, from, count);
-   status = request(cmd);
+   status = request(cmd, pars);
    status += write("\n");
    total = 0;
 
@@ -252,30 +254,40 @@ int LmcCom::queryRange(const char* command, int from, int count, RangeList* list
    lt.set(result);   
    tell(eloDetail, "Got [%s]", unescape(result));
 
+   int nextYearId = 0;
+
    while (lt.getNext(tag, value, maxValue) != LmcTag::wrnEndOfPacket)
    {
+      if (tag != resultTag && tag != LmcTag::tId)
+         continue;
+
       switch (tag)
       {
-         case LmcTag::tItemCount: total = atoi(value);     break;
-         case LmcTag::tGenre:     strcpy(content, value);  break;
-         case LmcTag::tArtist:    strcpy(content, value);  break;
-         case LmcTag::tAlbum:     strcpy(content, value);  break;
+         case LmcTag::tItemCount: total = atoi(value);    break;
+
+         case LmcTag::tGenre:
+         case LmcTag::tArtist:
+         case LmcTag::tAlbum:
+         case LmcTag::tTitle:  item.content = value;   break;
+
+         case LmcTag::tYear:   item.id = nextYearId++; item.content = value; break; // for year id is missing :o
+
          case LmcTag::tPlaylist:  
             if (strcmp(value, escId) != 0)
-               strcpy(content, value);  
+               item.content = value;
             break;
-         case LmcTag::tId:        id = atoi(value);        break;
+
+         case LmcTag::tId:        item.id = atoi(value);  break;
       }
 
-      if (id != na && !isEmpty(content))
+      if (!item.isEmpty())
       {
-         list->push_back(content);
-         *content = 0;
-         id = na;
+         list->push_back(item);
+         item.clear();
       }
    }
 
-   list->sort();
+   // #TODO list->sort();
    
    return success;
 }
@@ -284,11 +296,22 @@ int LmcCom::queryRange(const char* command, int from, int count, RangeList* list
 // Execute
 //***************************************************************************
 
+int LmcCom::execute(const char* command, Parameters* pars)
+{
+   LmcLock;
+
+   tell(eloDetail, "exectuting '%s' with %d parameters", command, pars ? pars->size() : 0);
+   request(command, pars);
+   write("\n");
+
+   return response();
+}
+
 int LmcCom::execute(const char* command, const char* par)
 {
    LmcLock;
 
-   tell(eloDetail, "exectuting '%s' with '%s'", command, par ? par : "");
+   tell(eloDetail, "exectuting '%s' with '%s'", command, par);
    request(command, par);
    write("\n");
 
@@ -311,16 +334,39 @@ int LmcCom::execute(const char* command, int par)
 
 int LmcCom::request(const char* command, const char* par)
 {
+   Parameters pars;
+
+   pars.push_back(par);
+
+   return request(command, &pars);
+}
+
+//***************************************************************************
+// Request
+//***************************************************************************
+
+int LmcCom::request(const char* command, Parameters* pars)
+{
    int status;
-   
-   free(lastPar); lastPar = 0;
+
    snprintf(lastCommand, sizeMaxCommand, "%s", command);
 
-   if (!isEmpty(par))
-      lastPar = escape(par);
+   lastPar = "";
+
+   if (pars)
+   {
+      LmcCom::Parameters::iterator it;
+
+      for (it = pars->begin(); it != pars->end(); ++it)
+      {
+         char* p = escape((*it).c_str());
+         lastPar += std::string(p) + " ";
+         free(p);
+      }
+   }
    
-   tell(eloDebug, "requsting '%s' with '%s'", 
-        lastCommand, lastPar);
+   tell(eloDetail, "requsting '%s' with '%s'", 
+        lastCommand, lastPar.c_str());
 
    flush();
 
@@ -328,9 +374,9 @@ int LmcCom::request(const char* command, const char* par)
       + write(" ")
       + write(lastCommand);
 
-   if (lastPar)
+   if (lastPar != "")
       status += write(" ")
-         + write(lastPar);
+         + write(lastPar.c_str());
 
    return status;
 }

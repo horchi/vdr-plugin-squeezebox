@@ -162,16 +162,16 @@ int main(int argc, char** argv)
    tell(0, "--------------------------");
    tell(0, "Requesting genres: ");
 
-   if (lmc->queryRange("genres", 0, 100,  &list, total) == success)
-   {
-      LmcCom::RangeList::iterator it;
+//    if (lmc->queryRange("genres", 0, 100,  &list, total) == success)
+//    {
+//       LmcCom::RangeList::iterator it;
 
-      for (it = list.begin(); it != list.end(); ++it)
-         tell(0, "  '%s'", (*it).c_str());
+//       for (it = list.begin(); it != list.end(); ++it)
+//          tell(0, "  '%s'", (*it).content.c_str());
 
-      if (total > 100)
-         tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
-   }
+//       if (total > 100)
+//          tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
+//    }
 
    // tell(0, "--------------------------");
    // tell(0, "Load Album");

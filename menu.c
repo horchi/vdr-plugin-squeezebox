@@ -6,21 +6,7 @@
  */
 
 #include "squeezebox.h"
-
-enum FilterType
-{
-   ftGenre          = 1,
-   ftArtist         = 2,
-   ftAlbum          = 4,
-   ftYear           = 8,
-   
-   ftCombined       = 16,
-   ftGenreAlbum     = ftCombined,
-
-   ftOther          = 256,
-   ftPlaylist       = ftOther,
-   ftRandomTracks   = 512 
-};
+#include "lmctag.h"
 
 //***************************************************************************
 // Sub Menu Item
@@ -30,16 +16,17 @@ class cSubMenuItem : public cOsdItem
 {
    public:
    
-      cSubMenuItem(const char* title) : cOsdItem(title) 
-      { value = strdup(title); }
+      cSubMenuItem(LmcCom::ListItem* aItem) : cOsdItem(aItem->content.c_str()) 
+      { item = *aItem; }
 
-      virtual ~cSubMenuItem()      { free(value); }
+      virtual ~cSubMenuItem()
+      { }
 
-      const char* getValue()       { return value; }
+      const LmcCom::ListItem* getItem()       { return &item; }
 
    protected:
 
-      char* value;
+      LmcCom::ListItem item;
 };
 
 //***************************************************************************
@@ -50,52 +37,111 @@ class cSubMenu : public cOsdMenu
 {
    public:
 
-      cSubMenu(const char* title, LmcCom* aLmc, FilterType tp, const char* aQuery);
-      virtual ~cSubMenu() { free(query); }
-      
+      cSubMenu(const char* title, LmcCom* aLmc, LmcTag::Tag tag, LmcCom::Parameters* aFilters = 0);
+      virtual ~cSubMenu();
       virtual eOSState ProcessKey(eKeys key);
 
    protected:
 
-      LmcCom::RangeList list;
-      char* query;
+      struct Query
+      {
+         LmcTag::Tag tag;         // tag like genre (used for request)
+         LmcTag::Tag idtag;       // id tag like genre_id (used to filter)
+         LmcTag::Tag tagSubLevel; // next deeper menu level
+         const char* query;
+      };
+      
+   private:
+
+      LmcCom::Parameters filters;
       LmcCom* lmc;
-      FilterType type;
+      LmcTag::Tag tag;
+
+      // static stuff
+
+      static Query queries[];
+
+      static const char* toName(LmcTag::Tag tag)
+      {
+         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
+            if (queries[i].tag == tag)
+               return queries[i].query;
+         
+         return "";
+      }
+
+      static LmcTag::Tag toIdTag(LmcTag::Tag tag)
+      {
+         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
+            if (queries[i].tag == tag)
+               return queries[i].idtag;
+         
+         return LmcTag::tUnknown;
+      }
+
+      static LmcTag::Tag toSubLevelTag(LmcTag::Tag tag)
+      {
+         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
+            if (queries[i].tag == tag)
+               return queries[i].tagSubLevel;
+         
+         return LmcTag::tUnknown;
+      }
 };
 
-cSubMenu::cSubMenu(const char* title, LmcCom* aLmc, FilterType tp, const char* aQuery)
+//***************************************************************************
+// Definition of the Menu Structure
+//***************************************************************************
+
+cSubMenu::Query cSubMenu::queries[] =
+{
+   { LmcTag::tPlaylist, LmcTag::tPlaylistId, LmcTag::tUnknown,    "playlists" },
+   { LmcTag::tGenre,    LmcTag::tGenreId,    LmcTag::tArtist,     "genres"    },
+   { LmcTag::tArtist,   LmcTag::tArtistId,   LmcTag::tAlbum,      "artists"   },
+   { LmcTag::tAlbum,    LmcTag::tAlbumId,    LmcTag::tTrack,      "albums"    },
+   { LmcTag::tYear,     LmcTag::tYear,       LmcTag::tAlbum,      "years"     },
+   { LmcTag::tTrack,    LmcTag::tTrackId,    LmcTag::tUnknown,    "tracks"    },
+   
+   { LmcTag::tUnknown }
+};
+
+//***************************************************************************
+// Menu
+//***************************************************************************
+
+cSubMenu::cSubMenu(const char* title, LmcCom* aLmc, LmcTag::Tag aTag, LmcCom::Parameters* aFilters)
    : cOsdMenu(title)
 {
+   LmcCom::RangeList list;
    int total;
-
+   
    SetMenuCategory(mcMain);
    lmc = aLmc;
-   type = tp, 
-   query = strdup(aQuery);
+   tag = aTag;
+   
+   if (aFilters)
+      filters = *aFilters;
 
    Clear();
 
-   if (type < ftCombined)
+   if (lmc && lmc->queryRange(toName(tag), tag, 0, 200, &list, total, &filters) == success)
    {
-      if (lmc && lmc->queryRange(query, 0, 200, &list, total) == success)
-      {
-         LmcCom::RangeList::iterator it;
-         
-         for (it = list.begin(); it != list.end(); ++it)
-            cOsdMenu::Add(new cSubMenuItem((*it).c_str()));
-         
-         if (total > 200)
-            tell(eloAlways, "Warning: [%s] %d more, only 200 supported", query, total-200);
-      }
-   }
-   else
-   {
+      LmcCom::RangeList::iterator it;
       
+      for (it = list.begin(); it != list.end(); ++it)
+         cOsdMenu::Add(new cSubMenuItem(&(*it)));
+      
+      if (total > 200)
+         tell(eloAlways, "Warning: [%s] %d more, only 200 supported", toName(tag), total-200);
    }
 
-   SetHelp(0, tr("play"), tr("append"), 0);
+   SetHelp(tr("insert"), tr("play"), tr("append"), 0);
 
    Display();
+}
+
+cSubMenu::~cSubMenu() 
+{ 
 }
 
 //***************************************************************************
@@ -104,45 +150,69 @@ cSubMenu::cSubMenu(const char* title, LmcCom* aLmc, FilterType tp, const char* a
 
 eOSState cSubMenu::ProcessKey(eKeys key)
 {
+   char flt[500];
    eOSState state = cOsdMenu::ProcessKey(key);
+   cSubMenuItem* item = (cSubMenuItem*)Get(Current());
 
    if (state != osUnknown)
       return state;
 
    switch (key)
    {
+      case kOk:
+      {
+         if (toSubLevelTag(tag) != LmcTag::tUnknown)
+         {
+            char* subTitle;
+            LmcCom::Parameters pars = filters;
+            
+            asprintf(&subTitle, "%s / %s ", Title(), item->getItem()->content.c_str());
+            sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), tag == LmcTag::tYear ? atoi(item->getItem()->content.c_str()) : item->getItem()->id);
+            pars.push_back(flt);
+            
+            state = AddSubMenu(new cSubMenu(subTitle, lmc, toSubLevelTag(tag), &pars));
+            free(subTitle);
+            return state;
+         }
+         
+         return osContinue;
+      }
+
+      case kRed:
+      {
+         LmcCom::Parameters pars = filters;
+
+         pars.push_back("cmd:insert");
+         sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), item->getItem()->id);
+         pars.push_back(flt);
+         lmc->execute("playlistcontrol", &pars);
+
+         return osContinue;
+      }
+
       case kGreen:
       {
-         cSubMenuItem* item = (cSubMenuItem*)Get(Current());
+         LmcCom::Parameters pars = filters;
 
-         switch (type)
-         {
-            case ftGenre:    lmc->loadAlbum(item->getValue(), "*", "*"); break;
-            case ftArtist:   lmc->loadAlbum("*", item->getValue(), "*"); break;
-            case ftAlbum:    lmc->loadAlbum("*", "*", item->getValue()); break;
-            case ftYear:     break;
-            case ftPlaylist: lmc->loadPlaylist(item->getValue());        break;
-            default: break;
-         }
+         pars.push_back("cmd:load");
+         sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), item->getItem()->id);
+         pars.push_back(flt);
+         lmc->execute("playlistcontrol", &pars);
 
-         break;
-      }   
+         return osContinue;
+      }
+      
       case kYellow:
       {
-         cSubMenuItem* item = (cSubMenuItem*)Get(Current());
+         LmcCom::Parameters pars = filters;
 
-         switch (type)
-         {
-            case ftGenre:    lmc->appendAlbum(item->getValue(), "*", "*"); break;
-            case ftArtist:   lmc->appendAlbum("*", item->getValue(), "*"); break;
-            case ftAlbum:    lmc->appendAlbum("*", "*", item->getValue()); break;
-            case ftYear:     break;
-            case ftPlaylist: lmc->appendPlaylist(item->getValue());        break;
-            default: break;
-         }
+         pars.push_back("cmd:add");
+         sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), item->getItem()->id);
+         pars.push_back(flt);
+         lmc->execute("playlistcontrol", &pars);
 
-         break;
-      }   
+         return osContinue;
+      }
 
       default: return state;
    }
@@ -167,7 +237,7 @@ cSqueezeMenu::cSqueezeMenu(const char* title, LmcCom* aLmc)
    cOsdMenu::Add(new cOsdItem(tr("Genres")));
    cOsdMenu::Add(new cOsdItem(tr("Artists")));
    cOsdMenu::Add(new cOsdItem(tr("Albums")));
-//   cOsdMenu::Add(new cOsdItem(tr("Years")));
+   cOsdMenu::Add(new cOsdItem(tr("Years")));
 
    SetHelp(0, 0, 0, 0);
 
@@ -192,17 +262,15 @@ eOSState cSqueezeMenu::ProcessKey(eKeys key)
          switch (Current())
          {
             case 0: lmc->randomTracks(); return osEnd;
-
-            case 1: return AddSubMenu(new cSubMenu(tr("Playlists"), lmc, ftPlaylist, "playlists"));
-            case 2: return AddSubMenu(new cSubMenu(tr("Genres"), lmc, ftGenre, "genres"));
-            case 3: return AddSubMenu(new cSubMenu(tr("Artists"), lmc, ftArtist, "artists"));
-            case 4: return AddSubMenu(new cSubMenu(tr("Albums"), lmc, ftAlbum, "albums"));
-            case 5: return AddSubMenu(new cSubMenu(tr("Years"), lmc, ftYear, "years"));
+            case 1: return AddSubMenu(new cSubMenu(tr("Playlists"), lmc, LmcTag::tPlaylist));
+            case 2: return AddSubMenu(new cSubMenu(tr("Genres"), lmc, LmcTag::tGenre));
+            case 3: return AddSubMenu(new cSubMenu(tr("Artists"), lmc, LmcTag::tArtist));
+            case 4: return AddSubMenu(new cSubMenu(tr("Albums"), lmc, LmcTag::tAlbum));
+            case 5: return AddSubMenu(new cSubMenu(tr("Years"), lmc, LmcTag::tYear));
          }
       }
 
-      default:
-         break;
+      default: break;
    }
 
    return state;

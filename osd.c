@@ -41,7 +41,7 @@ class cMyStatus : public cStatus
 // Squeeze Osd
 //***************************************************************************
 
-cSqueezeOsd::cSqueezeOsd(const char* aConfDir)
+cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    : cThread()
 {
    loopActive = no;
@@ -55,7 +55,7 @@ cSqueezeOsd::cSqueezeOsd(const char* aConfDir)
    plItemSpace = 10;
    plItems = 0;
    plItemHeight = 0;
-   confDir = strdup(aConfDir);
+   resDir = strdup(aResDir);
    symbolBoxHeight = 100;
    buttonLevel = 0;
 
@@ -127,7 +127,7 @@ cSqueezeOsd::~cSqueezeOsd()
 
    delete osd;
 
-   free(confDir);
+   free(resDir);
 }
 
 //***************************************************************************
@@ -796,7 +796,7 @@ int cSqueezeOsd::drawSymbol(const char* name, int x, int y, int width, int heigh
    char* path = 0;
    cImage* image = 0;
 
-   asprintf(&path, "%s/squeezebox/%s", confDir, name);
+   asprintf(&path, "%s/squeezebox/%s", resDir, name);
    image = imgLoader->createImageFromFile(path, width, height, yes);
 
    if (image)
