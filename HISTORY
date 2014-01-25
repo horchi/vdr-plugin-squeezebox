@@ -10,7 +10,7 @@ VDR Plugin 'squeezebox' Revision History
   - added   osd redraw on vdr volume dispay
 
 2014-01-20: Version 0.0.4
-  - chaged  color button radius
+  - changed  color button radius
   - change  view of progress bar even replay is paused
 
 2014-01-20: Version 0.0.3
