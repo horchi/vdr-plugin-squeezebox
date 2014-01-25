@@ -1,6 +1,9 @@
 VDR Plugin 'squeezebox' Revision History
 ----------------------------------------
 
+2014-01-25: Version 0.0.7
+  - added   own menu instead of skins-menu
+
 2014-01-24: Version 0.0.6
   - added   menu structure like LMCs WEBIF
   - change  PNGs stored in resdir (instead of cfgdir)

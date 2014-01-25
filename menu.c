@@ -6,88 +6,74 @@
  */
 
 #include "squeezebox.h"
-#include "lmctag.h"
+#include "menu.h"
 
 //***************************************************************************
-// Sub Menu Item
+// Manu Base
 //***************************************************************************
 
-class cSubMenuItem : public cOsdItem
+cMenuBase* cMenuBase::activeMenu = 0;
+
+cMenuBase::cMenuBase(const char* aTitle)      
+{ 
+   title = strdup(aTitle); 
+   current = 0;
+   parent = 0;
+   red = 0;
+   green = 0;
+   yellow = 0;
+   blue = 0;
+   activeMenu = this;
+   visibleItems = 0;
+
+   Clear();
+}
+
+cMenuBase::~cMenuBase()
+{ 
+   activeMenu = parent; 
+   free(title); 
+   free(red);
+   free(green);
+   free(yellow);
+   free(blue); 
+}
+
+void cMenuBase::setHelp(const char* r, const char* g, const char* y, const char* b)
 {
-   public:
-   
-      cSubMenuItem(LmcCom::ListItem* aItem) : cOsdItem(aItem->content.c_str()) 
-      { item = *aItem; }
+   free(red);    red    = r ? strdup(r) : 0;
+   free(green);  green  = g ? strdup(g) : 0;
+   free(yellow); yellow = y ? strdup(y) : 0;
+   free(blue);   blue   = b ? strdup(b) : 0;
+}
 
-      virtual ~cSubMenuItem()
-      { }
-
-      const LmcCom::ListItem* getItem()       { return &item; }
-
-   protected:
-
-      LmcCom::ListItem item;
-};
-
-//***************************************************************************
-// Sub Menu
-//***************************************************************************
-
-class cSubMenu : public cOsdMenu
+int cMenuBase::ProcessKey(int key)
 {
-   public:
-
-      cSubMenu(const char* title, LmcCom* aLmc, LmcTag::Tag tag, LmcCom::Parameters* aFilters = 0);
-      virtual ~cSubMenu();
-      virtual eOSState ProcessKey(eKeys key);
-
-   protected:
-
-      struct Query
-      {
-         LmcTag::Tag tag;         // tag like genre (used for request)
-         LmcTag::Tag idtag;       // id tag like genre_id (used to filter)
-         LmcTag::Tag tagSubLevel; // next deeper menu level
-         const char* query;
-      };
-      
-   private:
-
-      LmcCom::Parameters filters;
-      LmcCom* lmc;
-      LmcTag::Tag tag;
-
-      // static stuff
-
-      static Query queries[];
-
-      static const char* toName(LmcTag::Tag tag)
-      {
-         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
-            if (queries[i].tag == tag)
-               return queries[i].query;
+   switch (key)
+   {
+      case kUp:   if (current > 0)         current--; return done;
+      case kDown: if (current < Count()-1) current++; return done;
          
-         return "";
+      case kLeft:
+      {
+         if (current > 0)
+            current = max(current-visibleItems, 0);
+
+         return done;
+      }
+      case kRight:
+      {
+         if (current < Count()-1)
+            current = min(current+visibleItems, Count()-1);
+
+         return done;
       }
 
-      static LmcTag::Tag toIdTag(LmcTag::Tag tag)
-      {
-         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
-            if (queries[i].tag == tag)
-               return queries[i].idtag;
-         
-         return LmcTag::tUnknown;
-      }
+      case kBack: return end;
+   }
 
-      static LmcTag::Tag toSubLevelTag(LmcTag::Tag tag)
-      {
-         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
-            if (queries[i].tag == tag)
-               return queries[i].tagSubLevel;
-         
-         return LmcTag::tUnknown;
-      }
-};
+   return ignore;
+}
 
 //***************************************************************************
 // Definition of the Menu Structure
@@ -110,12 +96,11 @@ cSubMenu::Query cSubMenu::queries[] =
 //***************************************************************************
 
 cSubMenu::cSubMenu(const char* title, LmcCom* aLmc, LmcTag::Tag aTag, LmcCom::Parameters* aFilters)
-   : cOsdMenu(title)
+   : cMenuSqueeze(title, aLmc)
 {
    LmcCom::RangeList list;
    int total;
    
-   SetMenuCategory(mcMain);
    lmc = aLmc;
    tag = aTag;
    
@@ -129,15 +114,15 @@ cSubMenu::cSubMenu(const char* title, LmcCom* aLmc, LmcTag::Tag aTag, LmcCom::Pa
       LmcCom::RangeList::iterator it;
       
       for (it = list.begin(); it != list.end(); ++it)
-         cOsdMenu::Add(new cSubMenuItem(&(*it)));
+         Add(new cSubMenuItem(&(*it)));
       
       if (total > 200)
          tell(eloAlways, "Warning: [%s] %d more, only 200 supported", toName(tag), total-200);
    }
 
-   SetHelp(tr("insert"), tr("play"), tr("append"), 0);
+   setHelp(tr("insert"), tr("play"), tr("append"), 0);
 
-   Display();
+   // Display();
 }
 
 cSubMenu::~cSubMenu() 
@@ -148,14 +133,15 @@ cSubMenu::~cSubMenu()
 // Process Key
 //***************************************************************************
 
-eOSState cSubMenu::ProcessKey(eKeys key)
+int cSubMenu::ProcessKey(int key)
 {
+   int state;
    char flt[500];
-   eOSState state = cOsdMenu::ProcessKey(key);
-   cSubMenuItem* item = (cSubMenuItem*)Get(Current());
 
-   if (state != osUnknown)
+   if ((state = cMenuBase::ProcessKey(key)) != ignore)
       return state;
+
+   cSubMenuItem* item = (cSubMenuItem*)Get(getCurrent());
 
    switch (key)
    {
@@ -170,12 +156,11 @@ eOSState cSubMenu::ProcessKey(eKeys key)
             sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), tag == LmcTag::tYear ? atoi(item->getItem()->content.c_str()) : item->getItem()->id);
             pars.push_back(flt);
             
-            state = AddSubMenu(new cSubMenu(subTitle, lmc, toSubLevelTag(tag), &pars));
+            AddSubMenu(new cSubMenu(subTitle, lmc, toSubLevelTag(tag), &pars));
             free(subTitle);
-            return state;
          }
          
-         return osContinue;
+         return done;
       }
 
       case kRed:
@@ -187,7 +172,7 @@ eOSState cSubMenu::ProcessKey(eKeys key)
          pars.push_back(flt);
          lmc->execute("playlistcontrol", &pars);
 
-         return osContinue;
+         return done;
       }
 
       case kGreen:
@@ -199,7 +184,7 @@ eOSState cSubMenu::ProcessKey(eKeys key)
          pars.push_back(flt);
          lmc->execute("playlistcontrol", &pars);
 
-         return osContinue;
+         return done;
       }
       
       case kYellow:
@@ -211,57 +196,62 @@ eOSState cSubMenu::ProcessKey(eKeys key)
          pars.push_back(flt);
          lmc->execute("playlistcontrol", &pars);
 
-         return osContinue;
+         return done;
       }
 
-      default: return state;
+      case kBlue: return done;
+
+      default: 
+         return ignore;
    }
 
-   return state;
+   return ignore;
 }
 
 //***************************************************************************
-// Main Menu
+// Menu
 //***************************************************************************
 
-cSqueezeMenu::cSqueezeMenu(const char* title, LmcCom* aLmc)
-   : cOsdMenu(title)
+cMenuSqueeze::cMenuSqueeze(const char* aTitle, LmcCom* aLmc)
+   : cMenuBase(aTitle)
 {
    lmc = aLmc;
 
-   SetMenuCategory(mcMain);
-   Clear();
+   Add(new cOsdItem(tr("Play random tracks")));
+   Add(new cOsdItem(tr("Playlists")));
+   Add(new cOsdItem(tr("Genres")));
+   Add(new cOsdItem(tr("Artists")));
+   Add(new cOsdItem(tr("Albums")));
+   Add(new cOsdItem(tr("Years")));
 
-   cOsdMenu::Add(new cOsdItem(tr("Play random tracks")));
-   cOsdMenu::Add(new cOsdItem(tr("Playlists")));
-   cOsdMenu::Add(new cOsdItem(tr("Genres")));
-   cOsdMenu::Add(new cOsdItem(tr("Artists")));
-   cOsdMenu::Add(new cOsdItem(tr("Albums")));
-   cOsdMenu::Add(new cOsdItem(tr("Years")));
+   setHelp(0, 0, 0, 0);
 
-   SetHelp(0, 0, 0, 0);
-
-   Display();
+   // Display();
 }
 
 //***************************************************************************
 // Process Key
 //***************************************************************************
 
-eOSState cSqueezeMenu::ProcessKey(eKeys key)
+int cMenuSqueeze::ProcessKey(int key)
 {
-   eOSState state = cOsdMenu::ProcessKey(key);
+   int state;
 
-   if (state != osUnknown)
+   if ((state = cMenuBase::ProcessKey(key)) != ignore)
       return state;
 
    switch (key)
    {
+      case kRed:
+      case kBlue: 
+      case kGreen:
+      case kYellow: return done;
+
       case kOk:
       {
-         switch (Current())
+         switch (getCurrent())
          {
-            case 0: lmc->randomTracks(); return osEnd;
+            case 0: lmc->randomTracks(); return done;
             case 1: return AddSubMenu(new cSubMenu(tr("Playlists"), lmc, LmcTag::tPlaylist));
             case 2: return AddSubMenu(new cSubMenu(tr("Genres"), lmc, LmcTag::tGenre));
             case 3: return AddSubMenu(new cSubMenu(tr("Artists"), lmc, LmcTag::tArtist));
@@ -270,8 +260,9 @@ eOSState cSqueezeMenu::ProcessKey(eKeys key)
          }
       }
 
-      default: break;
+      default: 
+         break;
    }
 
-   return state;
+   return ignore;
 }

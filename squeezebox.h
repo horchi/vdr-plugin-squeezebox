@@ -16,7 +16,7 @@
 
 #include "lmccom.h"
 
-static const char *VERSION        = "0.0.6";
+static const char *VERSION        = "0.0.7";
 static const char *DESCRIPTION    = "Squeezebox  - a client for the Logitech Media Server";
 static const char *MAINMENUENTRY  = "Squeezebox";
 
@@ -47,24 +47,6 @@ class cSqueezePlayer : public cPlayer, cThread
 };
 
 //***************************************************************************
-// Plugin Main Menu
-//***************************************************************************
-
-class cSqueezeMenu : public cOsdMenu
-{
-   public:
-
-      cSqueezeMenu(const char* title, LmcCom* aLmc);
-      virtual ~cSqueezeMenu() { };
-      
-      virtual eOSState ProcessKey(eKeys key);
-
-   protected:
-
-      LmcCom* lmc;
-};
-
-//***************************************************************************
 // Plugin 
 //***************************************************************************
 
@@ -77,17 +59,6 @@ class cPluginSqueezebox : public cPlugin
 
       virtual const char* Version(void)     { return VERSION; }
       virtual const char* Description(void) { return DESCRIPTION; }
-
-      void activateMenu(LmcCom* aLmc) 
-      { 
-         doActivateMenu = yes; 
-         lmcForMenu = aLmc;
-         
-         if (lmcForMenu)
-            cRemote::CallPlugin("squeezebox");
-         else
-            tell(0, "Missing lmc control handle");
-      }
 
       virtual const char* CommandLineHelp();
       virtual bool ProcessArgs(int argc, char *argv[]);
@@ -105,13 +76,6 @@ class cPluginSqueezebox : public cPlugin
       virtual bool Service(const char *Id, void *Data = NULL);
       virtual const char **SVDRPHelpPages(void);
       virtual cString SVDRPCommand(const char *Command, const char *Option, int &ReplyCode);
-
-   protected:
-
-      // data
-
-      LmcCom* lmcForMenu;
-      int doActivateMenu;
 };
 
 //***************************************************************************

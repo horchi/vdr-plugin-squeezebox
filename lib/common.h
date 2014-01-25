@@ -45,6 +45,7 @@ enum Misc
    na      = -1,
    ignore  = -2,
    all     = -3,
+   end     = -4,
    yes     = 1,
    on      = 1,
    off     = 0,

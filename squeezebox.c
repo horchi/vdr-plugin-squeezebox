@@ -91,6 +91,11 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       lmc->resume();
    }
 
+   // check if osd handle this key ...
+
+   if (key != kNone && osdThread->ProcessKey(key) == done)
+      return osContinue;
+
    if (key > k0 && key <= k9)
    {
       lmc->track(key - k0);
@@ -124,12 +129,6 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       case kVolUp:    lmc->volumeUp();   break;
       case kVolDn:    lmc->volumeDown(); break;
 
-      case kOk:    osdThread->ProcessKey(key); break;
-      case kUp:    osdThread->ProcessKey(key); break;
-      case kDown:  osdThread->ProcessKey(key); break;
-      case kLeft:  osdThread->ProcessKey(key); break;
-      case kRight: osdThread->ProcessKey(key); break;
-
       case k0:
       {
          buttonLevel = buttonLevel == 0 ? 1 : 0;
@@ -140,7 +139,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       case kRed:
       {
          if (buttonLevel == 0)
-            plugin->activateMenu(lmc); 
+            osdThread->activateMenu(lmc);
          else
             lmc->shuffle();
 
@@ -197,8 +196,6 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
 
 cPluginSqueezebox::cPluginSqueezebox()
 {
-   doActivateMenu = no;
-   lmcForMenu = 0;
 }
 
 cPluginSqueezebox::~cPluginSqueezebox()
@@ -249,12 +246,6 @@ time_t cPluginSqueezebox::WakeupTime()
 
 cOsdObject* cPluginSqueezebox::MainMenuAction()
 {
-   if (doActivateMenu)
-   {
-      doActivateMenu = no;
-      return new cSqueezeMenu(tr("Playlist"), lmcForMenu);
-   }
-
    cControl::Launch(new cSqueezeControl(this, ResourceDirectory()));
 
    return 0;
