@@ -189,18 +189,18 @@ int cSqueezeOsd::ProcessKey(int key)
 
       if (status == end)
       {
-         tell(0, "exit menu level");
          cMenuBase* m = cMenuBase::getActive();
 
          if (m) delete m;
 
          if (!cMenuBase::getActive())
          {
-            tell(0, "menu closed");
             menu = 0;
+            forceNextDraw = yes;
          }
+         else
+            forceMenuDraw = yes;
 
-         forceMenuDraw = yes;
          return done;
       }
    }
@@ -322,8 +322,10 @@ void cSqueezeOsd::Action()
       if (osd && (cTimeMs::Now() > lastDraw+1000 || fullDraw || forceMenuDraw))
       {
          if (fullDraw)
+         {
             drawOsd();
-         else if (forceMenuDraw)
+         }
+         else if (forceMenuDraw && menu)
          {
             drawMenu();
             drawButtons();
