@@ -47,6 +47,8 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    loopActive = no;
    visible = no;
    forceNextDraw = yes;
+   forceMenuDraw = no;
+   forcePlaylistDraw = yes;
    border = 10;
    plTop = 0;
    plCurrent = 0;              // current user selected item, or current track (if no user action)
@@ -58,6 +60,11 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    resDir = strdup(aResDir);
    symbolBoxHeight = 100;
    buttonLevel = 0;
+   menu = 0;
+   menuTop = 0;
+   visibleMenuItems = 0;
+   menuItemHeight = 0;
+   menuItemSpace = 5;
 
    statusMonitor = new cMyStatus(this);
 
@@ -71,6 +78,9 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    memset(pixmapBtnGreen, 0, sizeof(pixmapBtnGreen));
    memset(pixmapBtnYellow, 0, sizeof(pixmapBtnYellow));
    memset(pixmapBtnBlue, 0, sizeof(pixmapBtnBlue));
+   memset(pixmapMenuTitle, 0, sizeof(pixmapMenuTitle));
+   memset(pixmapMenu, 0, sizeof(pixmapMenu));
+   memset(pixmapMenuCurrent, 0, sizeof(pixmapMenuCurrent));
 
    fontStd = 0;
    fontTilte = 0;
@@ -116,6 +126,13 @@ cSqueezeOsd::~cSqueezeOsd()
       osd->DestroyPixmap(pixmapBtnYellow[1]);
       osd->DestroyPixmap(pixmapBtnBlue[0]);
       osd->DestroyPixmap(pixmapBtnBlue[1]);
+
+      osd->DestroyPixmap(pixmapMenuTitle[0]);
+      osd->DestroyPixmap(pixmapMenuTitle[1]);
+      osd->DestroyPixmap(pixmapMenu[0]);
+      osd->DestroyPixmap(pixmapMenu[1]);
+      osd->DestroyPixmap(pixmapMenuCurrent[0]);
+      osd->DestroyPixmap(pixmapMenuCurrent[1]);
    }
 
    delete fontTilte;
@@ -149,146 +166,6 @@ void cSqueezeOsd::view()
 void cSqueezeOsd::hide()
 {
    forceNextDraw = yes;
-}
-
-//***************************************************************************
-// Process Key
-//***************************************************************************
-
-int cSqueezeOsd::ProcessKey(int key)
-{
-   switch (key)
-   {
-      case kUp:
-      {
-         if (plCurrent > 0)
-            plCurrent--;
-
-         plUserAction = yes;
-         lastScrollAt = time(0);
-         forceNextDraw = yes;
-
-         break;
-      }
-
-      case kDown:  
-      {
-         if (plCurrent < lmc->getTrackCount()-1)
-            plCurrent++;
-
-         plUserAction = yes;
-         lastScrollAt = time(0);
-         forceNextDraw = yes;
-
-         break;
-      }
-
-      case kRight:
-      {
-         if (plCurrent < lmc->getTrackCount()-1)
-            plCurrent = min(plCurrent+plItems, lmc->getTrackCount()-1);
-
-         plUserAction = yes;
-         lastScrollAt = time(0);
-         forceNextDraw = yes;
-
-         break;
-      }
-
-      case kLeft:
-      {
-         if (plCurrent > 0)
-            plCurrent = max(plCurrent-plItems, 0);
-
-         plUserAction = yes;
-         lastScrollAt = time(0);
-         forceNextDraw = yes;
-
-         break;
-      }
-
-      case kOk: 
-      {
-         if (plCurrent > na && plCurrent < lmc->getTrackCount())
-         {
-            plUserAction = no;
-            lmc->track(plCurrent);
-         }
-
-         break;
-      }
-   }
-
-   return done;
-}
-
-//***************************************************************************
-// Loop
-//***************************************************************************
-
-void cSqueezeOsd::Action()
-{
-   int changesPending = yes;
-   int fullDraw;
-   uint64_t lastDraw = 0;
-
-   loopActive = yes;
-   currentState = lmc->getPlayerState();   
-   visible = yes;
-
-   lmc->update();
-   lmc->startNotify();
-
-   while (loopActive && Running())
-   {
-      if (!lmc->isOpen())
-      {
-         if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
-         {
-            tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed, retrying in 5 seconds",
-                 cfg.lmcHost, cfg.lmcPort);
-
-            sleep(5);
-         }
-      }
-
-      // scroll
-
-      if (time(0) > lastScrollAt + 10 && plUserAction)
-      {
-         plUserAction = no;
-         forceNextDraw = yes;
-      }
-
-      // check for notification with 100ms timeout
-
-      changesPending = lmc->checkNotify(100) == success;
-
-      tell(eloDebug, "looping ... (%d) (%d)", changesPending, forceNextDraw);
-
-      if (!visible)
-         continue;
-
-      fullDraw = forceNextDraw || changesPending;
-
-      if (osd && (cTimeMs::Now() > lastDraw+1000 || fullDraw))
-      {
-         if (fullDraw) // :((( always yes instead of (fullDraw) until we not notified when menu is closed
-            drawOsd();
-         else
-         {
-            drawProgress();
-            drawStatus();
-         }
-
-         forceNextDraw = no;
-         lastDraw = cTimeMs::Now();
-
-         osd->Flush();  
-      }
-   }
-
-   lmc->stopNotify();
 }
 
 //***************************************************************************
@@ -331,16 +208,28 @@ int cSqueezeOsd::init()
       // create boxed
 
       int stHeight = fontStd->Height() + 2 * border;
-      int ifoHeight = 2 * fontTilte->Height() + fontArtist->Height() + 3 * fontStd->Height() + 2 * border;
+      int ifoHeight = 2 * fontTilte->Height() + fontArtist->Height() + 4 * fontStd->Height() + 2 * border;
       int plY = border + ifoHeight + 2 * border;
       int plHeight = cOsd::OsdHeight() - plY - stHeight - 2 * border;
       int stY = plY + plHeight + 2 * border;
       int btnWidth = width / 4 - border;
       int btnX = border;
+      int menuY = stHeight + 2 * border;
+
+      symbolBoxHeight = btnWidth / 2;
+      coverAreaWidth = cOsd::OsdWidth() / 2 - 2 * border;
+      coverAreaHeight = cOsd::OsdHeight() - symbolBoxHeight - stHeight - 4 * border;
+      int menuHeight = coverAreaHeight - stHeight - border;
 
       plItems = (plHeight-2*border) / (fontPl->Height()*2 + plItemSpace);
       plItemSpace = ((plHeight-2*border) - (plItems * fontPl->Height()*2)) / plItems;
       plItemHeight = fontPl->Height()*2 + plItemSpace;
+
+      menuItemHeight = fontStd->Height() + menuItemSpace;        // first aproach
+      menuItems = (menuHeight-2*border) / menuItemHeight;
+      menuItemSpace = ((menuHeight-2*border) - menuItems * menuItemHeight) / menuItems;
+      menuItemHeight = fontStd->Height() + menuItemSpace;        // recalc
+      visibleMenuItems = (menuHeight-2*border) / menuItemHeight;
 
       tell(eloDebug, "calculated %d items with a space of %d, hight is %d", 
            plItems, plItemSpace, (plHeight-2*border));
@@ -350,6 +239,10 @@ int cSqueezeOsd::init()
       createBox(pixmapPlCurrent, leftX, plY, width, plItemHeight, clrBox, clrWhite, 15);
       createBox(pixmapStatus, leftX, stY, width, stHeight, clrBox, clrBoxBlend, 15);
 
+      createBox(pixmapMenuTitle, border, border, coverAreaWidth, stHeight, clrBox, clrBoxBlend, 15);
+      createBox(pixmapMenu, border, menuY, coverAreaWidth, menuHeight, clrBox, clrBoxBlend, 15);
+      createBox(pixmapMenuCurrent, border, menuY, coverAreaWidth, menuItemHeight, clrBox, clrWhite, 15);
+
       createBox(pixmapBtnRed, btnX, stY, btnWidth, stHeight, 0xFF990000, 0xFFFF0000, 10);
       btnX += btnWidth + border;
       createBox(pixmapBtnGreen, btnX, stY, btnWidth, stHeight, 0xFF009900, 0xFF00EE00, 10);
@@ -357,11 +250,209 @@ int cSqueezeOsd::init()
       createBox(pixmapBtnYellow, btnX, stY, btnWidth, stHeight, 0xFF999900, 0xFFEEEE00, 10);
       btnX += btnWidth + border;
       createBox(pixmapBtnBlue, btnX, stY, btnWidth, stHeight, clrBox, clrBoxBlend, 10);
-
-      symbolBoxHeight = btnWidth / 2;
    }
 
    return done;
+}
+
+//***************************************************************************
+// Process Key
+//***************************************************************************
+
+int cSqueezeOsd::ProcessKey(int key)
+{
+   int status;
+
+   if (menu)
+   {
+      status = menu->getActive()->ProcessKey(key);
+
+      if (status == done)
+      {
+         forceMenuDraw = yes;
+         return done;
+      }
+
+      if (status == end)
+      {
+         while (cMenuBase* m = cMenuBase::getActive())
+            delete m;
+
+         menu = 0;
+         forceNextDraw = yes;
+
+         return done;
+      }
+
+      if (status == back)
+      {
+         cMenuBase* m = cMenuBase::getActive();
+
+         if (m) delete m;
+
+         if (!cMenuBase::getActive())
+         {
+            menu = 0;
+            forceNextDraw = yes;
+         }
+         else
+            forceMenuDraw = yes;
+
+         return done;
+      }
+   }
+
+   switch (key)
+   {
+      case kUp|k_Repeat:
+      case kUp:
+      {
+         if (plCurrent > 0)
+            plCurrent--;
+
+         plUserAction = yes;
+         lastScrollAt = time(0);
+         forcePlaylistDraw = yes;
+
+         return done;
+      }
+
+      case kDown|k_Repeat:
+      case kDown:
+      {
+         if (plCurrent < lmc->getTrackCount()-1)
+            plCurrent++;
+
+         plUserAction = yes;
+         lastScrollAt = time(0);
+         forcePlaylistDraw = yes;
+
+         return done;
+      }
+
+      case kRight|k_Repeat:
+      case kRight:
+      {
+         if (plCurrent < lmc->getTrackCount()-1)
+            plCurrent = min(plCurrent+plItems, lmc->getTrackCount()-1);
+
+         plUserAction = yes;
+         lastScrollAt = time(0);
+         forcePlaylistDraw = yes;
+
+         return done;
+      }
+
+      case kLeft|k_Repeat:
+      case kLeft:
+      {
+         if (plCurrent > 0)
+            plCurrent = max(plCurrent-plItems, 0);
+
+         plUserAction = yes;
+         lastScrollAt = time(0);
+         forcePlaylistDraw = yes;
+
+         return done;
+      }
+
+      case kOk: 
+      {
+         if (plCurrent > na && plCurrent < lmc->getTrackCount())
+         {
+            plUserAction = no;
+            lmc->track(plCurrent);
+         }
+
+         return done;
+      }
+   }
+
+   return ignore;
+}
+
+//***************************************************************************
+// Loop
+//***************************************************************************
+
+void cSqueezeOsd::Action()
+{
+   static int count = 0;
+
+   int changesPending = yes;
+   int fullDraw;
+   uint64_t lastDraw = 0;
+
+   loopActive = yes;
+   currentState = lmc->getPlayerState();   
+   visible = yes;
+
+   lmc->update();
+   lmc->startNotify();
+
+   while (loopActive && Running())
+   {
+      if (!lmc->isOpen())
+      {
+         if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
+         {
+            tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed, retrying in 5 seconds",
+                 cfg.lmcHost, cfg.lmcPort);
+
+            sleep(5);
+         }
+      }
+
+      // scroll
+
+      if (time(0) > lastScrollAt + 10 && plUserAction)
+      {
+         plUserAction = no;
+         forcePlaylistDraw = yes;
+      }
+
+      // check for notification with 100ms timeout
+
+      changesPending = lmc->checkNotify(50) == success;
+      tell(eloDebug2, "looping %d ... (%d) (%d)", count++, changesPending, forceNextDraw);
+
+      if (!visible)
+         continue;
+
+      fullDraw = forceNextDraw || changesPending;
+
+      if (osd && (cTimeMs::Now() > lastDraw+1000 || fullDraw || forceMenuDraw || forcePlaylistDraw))
+      {         
+         if (fullDraw)
+         {
+            drawOsd();
+         }
+         else if (forceMenuDraw && menu)
+         {
+            drawMenu();
+            drawButtons();
+         }
+         else if (forcePlaylistDraw && !menu)
+         {
+            drawPlaylist();
+            drawProgress();
+         }
+         else
+         {
+            drawProgress();
+            drawStatus();
+         }
+
+         forceNextDraw = no;
+         forcePlaylistDraw = no;
+         forceMenuDraw = no;
+         lastDraw = cTimeMs::Now();
+
+         osd->Flush();  
+      }
+   }
+
+   lmc->stopNotify();
 }
 
 //***************************************************************************
@@ -397,7 +488,7 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
 
 int cSqueezeOsd::drawOsd()
 {
-   tell(eloDetail, "Draw OSD");
+   tell(eloDebug, "Draw OSD");
 
    // set alpha to force redraw of background boxes
 
@@ -409,16 +500,90 @@ int cSqueezeOsd::drawOsd()
    pixmapBtnGreen[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
    pixmapBtnYellow[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
    pixmapBtnBlue[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
+   pixmapMenuTitle[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
+   pixmapMenu[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
+   pixmapMenuCurrent[pmBack]->SetAlpha(ALPHA_TRANSPARENT);
 
    // draw ...
 
-   drawCover();
+   if (menu)
+      drawMenu();
+   else
+   {
+      pixmapMenuTitle[pmText]->SetAlpha(ALPHA_TRANSPARENT);
+      pixmapMenu[pmText]->SetAlpha(ALPHA_TRANSPARENT);
+
+      drawCover();
+   }
+
    drawInfoBox();
    drawPlaylist();
    drawStatus();
    drawButtons();
 
    return success;
+}
+
+//***************************************************************************
+// Draw Menu
+//***************************************************************************
+
+int cSqueezeOsd::drawMenu()
+{
+   int x = 0;
+   int y = 0;
+   cMenuBase* active = menu ? menu->getActive() : 0;
+
+   if (!active)
+      return done;
+
+   pixmapMenu[pmText]->Fill(clrTransparent);         // clear box
+   pixmapMenuTitle[pmText]->Fill(clrTransparent);    // clear box
+
+   // title
+
+   pixmapMenuTitle[pmText]->DrawText(cPoint(0, 0), active->Title(),
+                                     clrWhite, clrTransparent, fontStd);
+
+   // visible menu items
+
+   int current = menu->getActive()->getCurrent();
+   int count = menu->getActive()->getCount();
+
+   // adjust first Visible;
+
+   if (current < menuTop)
+      menuTop = current;
+   else if (current >= menuTop + visibleMenuItems)
+      menuTop = current - visibleMenuItems +1;
+
+   for (int i = menuTop, cnt = 0; i < count && cnt < visibleMenuItems; i++, cnt++)
+   {
+      if (i == current)
+      {
+         int ay = pixmapMenu[pmBack]->ViewPort().Y() + y + border;
+
+         pixmapMenuCurrent[pmBack]->SetViewPort(cRect(pixmapMenuCurrent[pmBack]->ViewPort().X(), ay, 
+                                                      pixmapMenuCurrent[pmBack]->ViewPort().Width(), 
+                                                      pixmapMenuCurrent[pmBack]->ViewPort().Height()));
+      }
+
+      pixmapMenu[pmText]->DrawText(cPoint(x, y),
+                                   cString::sprintf("%s", menu->getActive()->getItemTextAt(i)),
+                                   clrWhite, clrTransparent, fontStd, pixmapMenu[pmText]->ViewPort().Width());
+
+      y += menuItemHeight;
+   }
+   
+   // 
+
+   pixmapMenuTitle[pmBack]->SetAlpha(ALPHA_OPAQUE);
+   pixmapMenuTitle[pmText]->SetAlpha(ALPHA_OPAQUE);
+   pixmapMenu[pmBack]->SetAlpha(ALPHA_OPAQUE);
+   pixmapMenu[pmText]->SetAlpha(ALPHA_OPAQUE);
+   pixmapMenuCurrent[pmBack]->SetAlpha(ALPHA_OPAQUE);
+
+   return done;
 }
 
 //***************************************************************************
@@ -436,6 +601,8 @@ int cSqueezeOsd::drawInfoBox()
 
    cPixmap::Lock();
 
+   tell(eloDebug, "Draw infobox");
+
    pixmapInfo[pmText]->Fill(clrTransparent);     // clear box
 
    cTextWrapper tw(currentTrack->title, fontTilte, pixmapInfo[pmText]->ViewPort().Width());
@@ -450,9 +617,31 @@ int cSqueezeOsd::drawInfoBox()
 
    pixmapInfo[pmText]->DrawText(cPoint(x, y), currentTrack->artist, clrWhite, clrTransparent, fontArtist, pixmapInfo[pmText]->ViewPort().Width());
    y += fontArtist->Height();
-   pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("Genre: %s   Album: %s", currentTrack->genre, currentTrack->album), clrWhite, 
-                                clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
-   y += fontStd->Height();
+
+   if (currentTrack->remote)
+   {
+      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("%s", currentTrack->remoteTitle),
+                                   clrWhite, clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
+      y += fontStd->Height();
+      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("%dkb/s CBR, %s", currentTrack->bitrate, currentTrack->contentType),
+                                   clrWhite, clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
+      y += fontStd->Height();
+   }
+   else
+   {
+      char tmp[10]; *tmp = 0;
+
+      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("Genre: %s", 
+                                                                  currentTrack->genre),
+                                   clrWhite, clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
+      y += fontStd->Height();
+
+      if (currentTrack->year) sprintf(tmp, "(%d)", currentTrack->year);
+      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("Album: %s %s", currentTrack->album, tmp),
+                                   clrWhite, clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
+      y += fontStd->Height();
+   }
+
    pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
                                 clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taCenter | taTop);
    y += fontPl->Height();
@@ -525,13 +714,15 @@ int cSqueezeOsd::drawProgress(int y)
 int cSqueezeOsd::drawPlaylist()
 {
    static int lastCount = na;
-   int y = 0;
 
+   int y = 0;
    cImage* imgSpeaker = 0;
    int imgWH = pixmapPlCurrent[pmText]->ViewPort().Height() / 3.0 * 2.0;
    int coverHeight = pixmapPlCurrent[pmText]->ViewPort().Height();
    int imgX = pixmapPlCurrent[pmText]->ViewPort().Width() - imgWH;
    int imgY = imgWH / 4;
+
+   tell(eloDebug, "Draw playlist");
 
    cPixmap::Lock();
 
@@ -552,7 +743,9 @@ int cSqueezeOsd::drawPlaylist()
    else if (plCurrent >= plTop + plItems)
       plTop = plCurrent - plItems +1;
 
-   for (int i = plTop, cnt = 0; i < lmc->getTrackCount() && cnt < plItems; i++, cnt++)
+   int cnt = 0;
+
+   for (int i = plTop; i < lmc->getTrackCount() && cnt < plItems; i++, cnt++)
    {
       tColor color = clrTextDark;
 
@@ -571,7 +764,7 @@ int cSqueezeOsd::drawPlaylist()
          drawSymbol("speaker.png", imgX, imgY+y, imgWH, imgWH, pixmapPlaylist[pmText]);
       }
 
-      drawTrackCover(pixmapPlaylist[pmText], lmc->getTrack(i)->id, 0, y, coverHeight);
+      drawTrackCover(pixmapPlaylist[pmText], lmc->getTrack(i), 0, y, coverHeight);
 
       int x = coverHeight + border;
       pixmapPlaylist[pmText]->DrawText(cPoint(x, y),
@@ -587,9 +780,13 @@ int cSqueezeOsd::drawPlaylist()
       y += fontPl->Height()+plItemSpace;
    }
 
+   tell(0, "finished playlist draw with %d items", cnt);
+
    pixmapPlaylist[pmBack]->SetAlpha(ALPHA_OPAQUE);
    pixmapPlaylist[pmText]->SetAlpha(ALPHA_OPAQUE);
-   pixmapPlCurrent[pmBack]->SetAlpha(ALPHA_OPAQUE);
+
+   if (!menu)
+      pixmapPlCurrent[pmBack]->SetAlpha(ALPHA_OPAQUE);
 
    cPixmap::Unlock();
 
@@ -694,19 +891,19 @@ int cSqueezeOsd::drawButtons()
    pixmapBtnYellow[pmText]->Fill(clrTransparent);
    pixmapBtnBlue[pmText]->Fill(clrTransparent);  
 
-   pixmapBtnRed[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? tr("Menu") : tr("Shuffle"),
+   pixmapBtnRed[pmText]->DrawText(cPoint(0, 0), Red(),
                                   clrWhite, clrTransparent, fontStd, 
                                   pixmapBtnRed[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? tr("<<") : tr("Repeat"), 
+   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), Green(), 
                                     clrWhite, clrTransparent, fontStd, 
                                     pixmapBtnGreen[pmText]->ViewPort().Width(), 0, taCenter | taTop);
    
-   pixmapBtnYellow[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? tr(">>") : tr("Vol-"),
+   pixmapBtnYellow[pmText]->DrawText(cPoint(0, 0), Yellow(),
                                      clrWhite, clrTransparent, fontStd, 
                                      pixmapBtnYellow[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), buttonLevel == 0 ? (currentState->plCount ? tr("Clear") : tr("Random")) : tr("Vol+"), 
+   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), Blue(), 
                                    clrWhite, clrTransparent, fontStd, 
                                    pixmapBtnBlue[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
@@ -728,27 +925,47 @@ int cSqueezeOsd::drawButtons()
 // Draw Cover
 //***************************************************************************
 
-int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, int tid, int x, int y, int size)
+int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track, 
+                                int x, int y, int size)
 {
+   cImage* image = 0;
    MemoryStruct cover;
+   std::string hash;
 
    if (!osd)
       return done;
 
-   lmc->getCover(&cover, tid);
-   storeFile(&cover, "/tmp/squeeze_track_cover.jpg");
+   if (!isEmpty(track->artworkurl))
+      hash = track->artworkurl;
+   else if (!isEmpty(track->artworkTrackId))
+      hash = track->artworkTrackId;
+   else 
+      hash = num2Str(track->id).c_str();
 
-   if (imgLoader->loadImage("/tmp/squeeze_track_cover.jpg") == success)
+   // clear cache on metadata change
+
+   if (lmc->hasMetadataChanged())
+      imgLoader->clearCache();
+
+   // check cache
+
+   tell(eloDebug, "Lookup track artwork '%s'", hash.c_str());
+   image = imgLoader->fromCache(hash);
+
+   if (!image)
    {
-      cImage* image = imgLoader->createImage(size, size, yes);
-
-      if (image)
+      lmc->getCover(&cover, track);
+      
+      if (imgLoader->loadImage(cover.memory, cover.size) == success)
       {
-         pixmap->DrawImage(cPoint(x, y), *image);
-         delete image;
+         image = imgLoader->createImage(size, size, yes);
+         imgLoader->addCache(hash, image);
       }
    }
-      
+
+   if (image)
+      pixmap->DrawImage(cPoint(x, y), *image);
+
    return done;
 }
 
@@ -763,13 +980,13 @@ int cSqueezeOsd::drawCover()
    if (!osd)
       return done;
 
-   lmc->getCurrentCover(&cover);
-   storeFile(&cover, "/tmp/squeeze_cover.jpg");
+   lmc->getCurrentCover(&cover, lmc->getCurrentTrack());
 
-   if (imgLoader->loadImage("/tmp/squeeze_cover.jpg") == success)
+   // optional store the cover on FS
+   // storeFile(&cover, "/tmp/squeeze_cover.jpg");
+
+   if (imgLoader->loadImage(cover.memory, cover.size) == success)
    {
-      int coverAreaWidth = cOsd::OsdWidth() / 2;
-      int coverAreaHeight = cOsd::OsdHeight() - symbolBoxHeight - pixmapStatus[pmBack]->ViewPort().Height() - 3 * border;
       unsigned short border = 140;
       unsigned short imgWidthHeight = coverAreaWidth - 2 * border;
 

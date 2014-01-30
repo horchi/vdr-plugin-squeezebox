@@ -101,9 +101,9 @@ int cSqueezePlayer::startPlayer()
       close(wrfd[1]);
       
       if (!isEmpty(cfg.audioDevice))
-         execl(cfg.squeezeCmd, cfg.squeezeCmd, "-n", cfg.playerName, "-o", cfg.audioDevice, NULL);
+         execl(cfg.squeezeCmd, cfg.squeezeCmd, "-s", cfg.lmcHost, "-m", cfg.mac, "-n", cfg.playerName, "-o", cfg.audioDevice, NULL);
       else
-         execl(cfg.squeezeCmd, cfg.squeezeCmd, "-n", cfg.playerName, NULL);
+         execl(cfg.squeezeCmd, cfg.squeezeCmd, "-s", cfg.lmcHost, "-m", cfg.mac, "-n", cfg.playerName, NULL);
 
       tell(eloAlways, "Process squeezelite ended unexpectedly, reason was '%s'\n", strerror(errno));
 

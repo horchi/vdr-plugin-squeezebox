@@ -10,6 +10,8 @@
 #include "config.h"
 #include "osd.h"
 
+#include "lib/common.h"
+
 cSqueezeConfig cfg;
 
 //***************************************************************************
@@ -70,7 +72,7 @@ cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aResDir
 
 cSqueezeControl::~cSqueezeControl()
 {
-   lmc->save();
+   // lmc->save();
 
    free(resDir);
    delete lmc;
@@ -88,8 +90,13 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
    if (!startDone && player->started())
    {
       startDone = yes;
-      lmc->resume();
+      // lmc->resume();
    }
+
+   // check if osd handle this key ...
+
+   if (key != kNone && osdThread->ProcessKey(key) == done)
+      return osContinue;
 
    if (key > k0 && key <= k9)
    {
@@ -98,7 +105,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       return osContinue;
    }
 
-   switch (key)
+   switch ((int)key)   // cast to avoid warnings
    {       
       case kBack:
       {
@@ -113,22 +120,19 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       case kPlayPause:
       case kPause:    lmc->pausePlay();  break;
       case kPlay:     lmc->play();       break;
+      case kFastRew|k_Repeat:
       case kFastRew:  lmc->scroll(-10);  break;
+      case kFastFwd|k_Repeat:
       case kFastFwd:  lmc->scroll(10);   break;
-      case kNext:     
+      case kNext|k_Repeat:
+      case kNext:
+      case kChanUp|k_Repeat:
       case kChanUp:   lmc->nextTrack();  break;
       case kPrev:
+      case kPrev|k_Repeat:
+      case kChanDn|k_Repeat:
       case kChanDn:   lmc->prevTrack();  break;
       case kMute:     lmc->muteToggle(); break;
-
-      case kVolUp:    lmc->volumeUp();   break;
-      case kVolDn:    lmc->volumeDown(); break;
-
-      case kOk:    osdThread->ProcessKey(key); break;
-      case kUp:    osdThread->ProcessKey(key); break;
-      case kDown:  osdThread->ProcessKey(key); break;
-      case kLeft:  osdThread->ProcessKey(key); break;
-      case kRight: osdThread->ProcessKey(key); break;
 
       case k0:
       {
@@ -140,7 +144,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       case kRed:
       {
          if (buttonLevel == 0)
-            plugin->activateMenu(lmc); 
+            osdThread->activateMenu(lmc);
          else
             lmc->shuffle();
 
@@ -157,6 +161,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
          break;
       }
 
+      case kYellow|k_Repeat:
       case kYellow:
       {
          if (buttonLevel == 0)
@@ -166,6 +171,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
          break;
       }
 
+      case kBlue|k_Repeat:
       case kBlue:
       {
          if (buttonLevel == 0)
@@ -197,8 +203,6 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
 
 cPluginSqueezebox::cPluginSqueezebox()
 {
-   doActivateMenu = no;
-   lmcForMenu = 0;
 }
 
 cPluginSqueezebox::~cPluginSqueezebox()
@@ -249,12 +253,7 @@ time_t cPluginSqueezebox::WakeupTime()
 
 cOsdObject* cPluginSqueezebox::MainMenuAction()
 {
-   if (doActivateMenu)
-   {
-      doActivateMenu = no;
-      return new cSqueezeMenu(tr("Playlist"), lmcForMenu);
-   }
-
+   loglevel = cfg.logLevel;
    cControl::Launch(new cSqueezeControl(this, ResourceDirectory()));
 
    return 0;
@@ -268,12 +267,14 @@ cMenuSetupPage* cPluginSqueezebox::SetupMenu()
 bool cPluginSqueezebox::SetupParse(const char* Name, const char* Value)
 {
   if      (!strcasecmp(Name, "logLevel"))     cfg.logLevel = atoi(Value);
-  else if (!strcasecmp(Name, "lmcHost"))      cfg.lmcHost = strdup(Value);
   else if (!strcasecmp(Name, "lmcPort"))      cfg.lmcPort = atoi(Value);
   else if (!strcasecmp(Name, "lmcHttpPort"))  cfg.lmcHttpPort = atoi(Value);
-  else if (!strcasecmp(Name, "squeezeCmd"))   cfg.squeezeCmd = strdup(Value);
-  else if (!strcasecmp(Name, "playerName"))   cfg.playerName = strdup(Value);
-  else if (!strcasecmp(Name, "audioDevice"))  cfg.audioDevice = strdup(Value);
+
+  else if (!strcasecmp(Name, "lmcHost"))      { free(cfg.lmcHost);     cfg.lmcHost = strdup(Value); }
+  else if (!strcasecmp(Name, "squeezeCmd"))   { free(cfg.squeezeCmd);  cfg.squeezeCmd = strdup(Value); }
+  else if (!strcasecmp(Name, "playerName"))   { free(cfg.playerName);  cfg.playerName = strdup(Value); }
+  else if (!strcasecmp(Name, "playerMac"))    { free(cfg.mac);         cfg.mac = strdup(Value); }
+  else if (!strcasecmp(Name, "audioDevice"))  { free(cfg.audioDevice); cfg.audioDevice = strdup(Value); }
 
   else
      return false;

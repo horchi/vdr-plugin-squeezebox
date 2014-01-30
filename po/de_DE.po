@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: vdr-squeezebox 0.0.2\n"
 "Report-Msgid-Bugs-To: <see README>\n"
-"POT-Creation-Date: 2014-01-24 10:44+0100\n"
+"POT-Creation-Date: 2014-01-30 15:04+0100\n"
 "PO-Revision-Date: 2014.02.20 08:51+0100\n"
 "Last-Translator: horchi <vdr@jwendel.de>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,22 +16,16 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-msgid "insert"
+msgid "Close"
 msgstr ""
 
-msgid "play"
+msgid "Append"
 msgstr ""
 
-msgid "append"
+msgid "Insert"
 msgstr ""
 
-msgid "Play random tracks"
-msgstr ""
-
-msgid "Playlists"
-msgstr ""
-
-msgid "Genres"
+msgid "Play"
 msgstr ""
 
 msgid "Artists"
@@ -40,38 +34,29 @@ msgstr ""
 msgid "Albums"
 msgstr ""
 
+msgid "Genres"
+msgstr ""
+
 msgid "Years"
+msgstr ""
+
+msgid "Play random tracks"
+msgstr ""
+
+msgid "Playlists"
+msgstr ""
+
+msgid "Radio"
+msgstr ""
+
+msgid "close"
 msgstr ""
 
 msgid "Volume"
 msgstr ""
 
-msgid "Menu"
-msgstr "Menü"
+#~ msgid "Menu"
+#~ msgstr "Menü"
 
-msgid "Shuffle"
-msgstr ""
-
-msgid "<<"
-msgstr ""
-
-msgid "Repeat"
-msgstr ""
-
-msgid ">>"
-msgstr ""
-
-msgid "Vol-"
-msgstr ""
-
-msgid "Clear"
-msgstr "Leeren"
-
-msgid "Random"
-msgstr ""
-
-msgid "Vol+"
-msgstr ""
-
-msgid "Playlist"
-msgstr ""
+#~ msgid "Clear"
+#~ msgstr "Leeren"

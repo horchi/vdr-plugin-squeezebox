@@ -35,15 +35,32 @@ using std::vector;
 class LmcCom : public TcpChannel
 {
    public:
+      
+      enum RangeQueryType
+      {
+         rqtUnknown = na,
+
+         rqtGenres,
+         rqtArtists,
+         rqtAlbums,
+         rqtTracks,
+         rqtYears,
+         rqtPlaylists,
+         rqtRadios,
+         rqtRadioApps
+      };
 
       struct ListItem
       {
-          ListItem()     { clear(); }
-          void clear()   { id = na; content = ""; }
-          int isEmpty()  { return id == na || content == ""; }
+         ListItem()     { clear(); }
+         void clear()   { id = ""; content = ""; command = ""; hasItems = no; isAudio = no; }
+         int isEmpty()  { return content == ""; }
 
-          int id;
-          std::string content;
+         std::string id;
+         std::string content;
+         std::string command;
+         int hasItems;
+         int isAudio;
       };
 
       typedef std::list<ListItem> RangeList;
@@ -92,7 +109,15 @@ class LmcCom : public TcpChannel
          char album[100+TB];
          char artist[100+TB];
          char title[200+TB];
-         char coverid[500+TB];
+         char artworkTrackId[500+TB];
+         char artworkurl[500+TB];
+         char remoteTitle[500+TB];
+         char contentType[100+TB];
+
+         unsigned int bitrate;
+         unsigned short remote;
+         unsigned int year;
+
          int index;             // index in current playlist
          int id;                // track ID
          int duration;
@@ -116,14 +141,15 @@ class LmcCom : public TcpChannel
       int execute(const char* command, const char* par);
 
       int query(const char* command, char* response, int max);
-      int queryRange(const char* command, int resultTag, int from, int count, 
-                     RangeList* list, int& total, Parameters* pars = 0);
       int queryInt(const char* command, int& value);
+
+      int queryRange(RangeQueryType queryType, int from, int count, 
+                     RangeList* list, int& total, const char* special = "", Parameters* pars = 0);
 
       // cover
 
-      int getCurrentCover(MemoryStruct* cover);
-      int getCover(MemoryStruct* cover, int trackId);
+      int getCurrentCover(MemoryStruct* cover, TrackInfo* track = 0);
+      int getCover(MemoryStruct* cover, TrackInfo* track);
 
 
       // notification channel
@@ -156,6 +182,8 @@ class LmcCom : public TcpChannel
          sprintf(par, "%c%d", step < 0 ? '-' : '+', abs(step));
          return execute("time", par); 
       }
+
+      const char* getLastQueryTitle() { return queryTitle ? queryTitle : ""; }
 
       int nextTrack()      { return execute("playlist index", "+1"); }
       int prevTrack()      { return execute("playlist index", "-1"); }
@@ -225,26 +253,29 @@ class LmcCom : public TcpChannel
       { 
          if (playerState.plIndex >= 0 && playerState.plIndex < (int)tracks.size())
             return &tracks.at(playerState.plIndex);
-
          
          return &dummyTrack;
       }
 
+      int hasMetadataChanged() { return metaDataChanged; }
 
       PlayerState* getPlayerState() { return &playerState; }
 
-      int getTrackCount()          { return tracks.size(); }
-      TrackInfo* getTrack(int idx) { return &tracks[idx]; }
+      int getTrackCount()           { return tracks.size(); }
+      TrackInfo* getTrack(int idx)  { return &tracks[idx]; }
 
       char* unescape(char* buf);       // url like encoding
       char* escape(const char* buf);
 
-   private:
-
       int request(const char* command, Parameters* par = 0);
       int request(const char* command, const char* par);
 
+      int responseP(char*& result);
       int response(char* response = 0, int max = 0);
+
+   private:
+
+      void setQueryTitle(const char* title) { free(queryTitle); queryTitle = strdup(title); }
 
       // data
 
@@ -262,6 +293,8 @@ class LmcCom : public TcpChannel
       PlayerState playerState;
       LmcCom* notify;
       vector<TrackInfo> tracks;
+      char* queryTitle;
+      int metaDataChanged;
 
 #ifdef VDR_PLUGIN
       cMutex comMutex;

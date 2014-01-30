@@ -66,7 +66,7 @@ Installation:
 4. squeezelite - streaming client for the LMS
 
   squeezelite is the the streming client used by the plugin
-  Requirements: libalsa-dev libasound2-dev libflac-dev libmad0-dev libvorbis-dev libfaad-dev libmpg123-dev
+  Requirements: libasound2-dev libflac-dev libmad0-dev libvorbis-dev libfaad-dev libmpg123-dev
 
   #> git clone https://code.google.com/p/squeezelite
   #> cd squeezelite
@@ -87,10 +87,33 @@ Configuration:
    squeezebox.playerName = VDR-squeeze
    squeezebox.squeezeCmd = /usr/local/bin/squeezelite
 
-  And adjust the parameters to fit your system
+  And adjust the parameters to fit your system:
 
-  The possible setting of audioDevice are shown by calling:
-  #> squeezelite -l
+  - squeezebox.audioDevice  
+     The possible setting of audioDevice are shown by calling:
+     #> squeezelite -l
+     normally similar to the softhddevice configuration (squeezelite option)
+   
+  - squeezebox.logLevel
+     the loglevel (0-4), 0 less, 1 normal, 2.. debug (default 1)
+
+  - squeezebox.playerName 
+     name of the squeezebox as displayed in the WEBIF (squeezelite option, default 'VDR-squeeze')
+
+  - squeezebox.playerMac
+     mac of the squeezebox, to run more than one squueze clinet in the same host (default the real mac)
+
+  - squeezebox.squeezeCmd:
+     path of squeezelite (default /usr/local/bin/squeezelite)
+
+  - squeezebox.lmcHost
+    host or ip of the LMS (default localhost)
+
+  - squeezebox.lmcHttpPort
+    http port of the LMS (default 9000)
+
+  - squeezebox.lmcPort
+    port of LMSs CLI interface (default 9090)
 
 
 Handling:

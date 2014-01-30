@@ -24,7 +24,7 @@ class cSqueezeConfig
 
       char* squeezeCmd;
       char* playerName;
-      char* mac;      
+      char* mac;
       char* audioDevice;
       unsigned short logLevel;
 };

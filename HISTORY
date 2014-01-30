@@ -1,5 +1,21 @@
+
 VDR Plugin 'squeezebox' Revision History
 ----------------------------------------
+
+2014-01-28: Version 0.0.8
+  - added   key repead
+  - added   support of long artist, genre, ... lists
+  - added   cover art for web radio
+  - change  cover load without fs usage (speed)
+  - added   track info for webradio (station name, ...)
+  - change  improved scroll speed of playlist
+  - added   menue for web radio
+  - added   TODO list
+  - added   mac to configuration (setup.conf)
+  - added   artwork cache to speedup redraw
+
+2014-01-25: Version 0.0.7
+  - added   own menu instead of skins-menu
 
 2014-01-24: Version 0.0.6
   - added   menu structure like LMCs WEBIF
@@ -10,7 +26,7 @@ VDR Plugin 'squeezebox' Revision History
   - added   osd redraw on vdr volume dispay
 
 2014-01-20: Version 0.0.4
-  - chaged  color button radius
+  - changed  color button radius
   - change  view of progress bar even replay is paused
 
 2014-01-20: Version 0.0.3

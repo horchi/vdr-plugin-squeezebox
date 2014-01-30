@@ -6,88 +6,82 @@
  */
 
 #include "squeezebox.h"
-#include "lmctag.h"
+#include "menu.h"
 
 //***************************************************************************
-// Sub Menu Item
+// Manu Base
 //***************************************************************************
 
-class cSubMenuItem : public cOsdItem
+cMenuBase* cMenuBase::activeMenu = 0;
+
+cMenuBase::cMenuBase(const char* aTitle)      
+{ 
+   title = strdup(aTitle); 
+   current = 0;
+   red = 0;
+   green = 0;
+   yellow = 0;
+   blue = 0;
+   activeMenu = this;
+   visibleItems = 0;
+   parent = 0;
+
+   Clear();
+}
+
+cMenuBase::~cMenuBase()
+{ 
+   activeMenu = parent; 
+
+   free(title); 
+   free(red);
+   free(green);
+   free(yellow);
+   free(blue); 
+}
+
+void cMenuBase::setHelp(const char* r, const char* g, const char* y, const char* b)
 {
-   public:
-   
-      cSubMenuItem(LmcCom::ListItem* aItem) : cOsdItem(aItem->content.c_str()) 
-      { item = *aItem; }
+   free(red);    red    = r ? strdup(r) : 0;
+   free(green);  green  = g ? strdup(g) : 0;
+   free(yellow); yellow = y ? strdup(y) : 0;
+   free(blue);   blue   = b ? strdup(b) : 0;
+}
 
-      virtual ~cSubMenuItem()
-      { }
-
-      const LmcCom::ListItem* getItem()       { return &item; }
-
-   protected:
-
-      LmcCom::ListItem item;
-};
-
-//***************************************************************************
-// Sub Menu
-//***************************************************************************
-
-class cSubMenu : public cOsdMenu
+int cMenuBase::ProcessKey(int key)
 {
-   public:
+   switch (key)
+   {
+      case kUp|k_Repeat:
+      case kUp:   if (current > 0)         current--; return done;
 
-      cSubMenu(const char* title, LmcCom* aLmc, LmcTag::Tag tag, LmcCom::Parameters* aFilters = 0);
-      virtual ~cSubMenu();
-      virtual eOSState ProcessKey(eKeys key);
-
-   protected:
-
-      struct Query
-      {
-         LmcTag::Tag tag;         // tag like genre (used for request)
-         LmcTag::Tag idtag;       // id tag like genre_id (used to filter)
-         LmcTag::Tag tagSubLevel; // next deeper menu level
-         const char* query;
-      };
-      
-   private:
-
-      LmcCom::Parameters filters;
-      LmcCom* lmc;
-      LmcTag::Tag tag;
-
-      // static stuff
-
-      static Query queries[];
-
-      static const char* toName(LmcTag::Tag tag)
-      {
-         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
-            if (queries[i].tag == tag)
-               return queries[i].query;
+      case kDown|k_Repeat:
+      case kDown: if (current < Count()-1) current++; return done;
          
-         return "";
+      case kLeft|k_Repeat:
+      case kLeft:
+      {
+         if (current > 0)
+            current = max(current-visibleItems, 0);
+
+         return done;
       }
 
-      static LmcTag::Tag toIdTag(LmcTag::Tag tag)
+      case kRight|k_Repeat:
+      case kRight:
       {
-         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
-            if (queries[i].tag == tag)
-               return queries[i].idtag;
-         
-         return LmcTag::tUnknown;
+         if (current < Count()-1)
+            current = min(current+visibleItems, Count()-1);
+
+         return done;
       }
 
-      static LmcTag::Tag toSubLevelTag(LmcTag::Tag tag)
-      {
-         for (int i = 0; queries[i].tag != LmcTag::tUnknown; i++)
-            if (queries[i].tag == tag)
-               return queries[i].tagSubLevel;
-         
-         return LmcTag::tUnknown;
-      }
-};
+      case kRed:  return end;
+      case kBack: return back;
+   }
+
+   return ignore;
+}
 
 //***************************************************************************
 // Definition of the Menu Structure
@@ -95,49 +89,99 @@ class cSubMenu : public cOsdMenu
 
 cSubMenu::Query cSubMenu::queries[] =
 {
-   { LmcTag::tPlaylist, LmcTag::tPlaylistId, LmcTag::tUnknown,    "playlists" },
-   { LmcTag::tGenre,    LmcTag::tGenreId,    LmcTag::tArtist,     "genres"    },
-   { LmcTag::tArtist,   LmcTag::tArtistId,   LmcTag::tAlbum,      "artists"   },
-   { LmcTag::tAlbum,    LmcTag::tAlbumId,    LmcTag::tTrack,      "albums"    },
-   { LmcTag::tYear,     LmcTag::tYear,       LmcTag::tAlbum,      "years"     },
-   { LmcTag::tTrack,    LmcTag::tTrackId,    LmcTag::tUnknown,    "tracks"    },
-   
-   { LmcTag::tUnknown }
+   { LmcCom::rqtPlaylists, LmcTag::tPlaylistId, LmcCom::rqtUnknown    },
+   { LmcCom::rqtGenres,    LmcTag::tGenreId,    LmcCom::rqtArtists    },
+   { LmcCom::rqtArtists,   LmcTag::tArtistId,   LmcCom::rqtAlbums     },
+   { LmcCom::rqtAlbums,    LmcTag::tAlbumId,    LmcCom::rqtTracks     },
+   { LmcCom::rqtYears,     LmcTag::tYear,       LmcCom::rqtAlbums     },
+   { LmcCom::rqtTracks,    LmcTag::tTrackId,    LmcCom::rqtUnknown    },
+   { LmcCom::rqtRadios,    LmcTag::tName,       LmcCom::rqtRadioApps  },
+   { LmcCom::rqtRadioApps, LmcTag::tItemId,     LmcCom::rqtRadioApps  },
+
+   { LmcCom::rqtUnknown }
 };
 
 //***************************************************************************
 // Menu
 //***************************************************************************
 
-cSubMenu::cSubMenu(const char* title, LmcCom* aLmc, LmcTag::Tag aTag, LmcCom::Parameters* aFilters)
-   : cOsdMenu(title)
+cSubMenu::cSubMenu(cMenuBase* aParent, const char* title, LmcCom* aLmc, 
+                   LmcCom::RangeQueryType aQueryType, LmcCom::Parameters* aFilters)
+   : cMenuSqueeze(title, aLmc)
 {
+   static int maxElements = 50000;
    LmcCom::RangeList list;
    int total;
-   
-   SetMenuCategory(mcMain);
+
+   parent = aParent;
    lmc = aLmc;
-   tag = aTag;
-   
-   if (aFilters)
-      filters = *aFilters;
+   queryType = aQueryType;
 
    Clear();
 
-   if (lmc && lmc->queryRange(toName(tag), tag, 0, 200, &list, total, &filters) == success)
+   if (queryType == LmcCom::rqtRadioApps)
    {
-      LmcCom::RangeList::iterator it;
-      
-      for (it = list.begin(); it != list.end(); ++it)
-         cOsdMenu::Add(new cSubMenuItem(&(*it)));
-      
-      if (total > 200)
-         tell(eloAlways, "Warning: [%s] %d more, only 200 supported", toName(tag), total-200);
+      cSubMenuItem* item = (cSubMenuItem*)parent->Get(parent->getCurrent());   
+
+      if (parent)
+      {
+         char flt[500]; *flt = 0;
+
+         filters.clear();
+
+         if (toIdTag(queryType) != LmcTag::tUnknown)   // tIsAudio !!!
+         {
+            sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+            filters.push_back(flt);
+         }
+
+         if (item && item->getItem())
+         {
+            tell(eloDebug, "Radio command: '%s' with '%s'", item->getItem()->command.c_str(), flt);
+            
+            if (lmc && lmc->queryRange(queryType, 0, maxElements, &list, total, item->getItem()->command.c_str(), &filters) == success)
+            {
+               LmcCom::RangeList::iterator it;
+               
+               for (it = list.begin(); it != list.end(); ++it)
+               {
+                  if ((*it).command == "search")    // not implemented
+                     continue;
+
+                  if ((*it).command.empty())
+                     (*it).command = item->getItem()->command;
+
+                  Add(new cSubMenuItem(&(*it)));
+               }
+            }
+         }
+      }
+   }
+   else
+   {
+      if (aFilters)
+         filters = *aFilters;
+
+      if (lmc && lmc->queryRange(queryType, 0, maxElements, &list, total, "", &filters) == success)
+      {
+         LmcCom::RangeList::iterator it;
+         
+         for (it = list.begin(); it != list.end(); ++it)
+            Add(new cSubMenuItem(&(*it)));
+         
+         if (total > maxElements)
+            tell(eloAlways, "Warning: %d more, only maxElements supported", total-maxElements);
+      }
    }
 
-   SetHelp(tr("insert"), tr("play"), tr("append"), 0);
+   // #TODO, change help info with current item while scrolling
 
-   Display();
+   cSubMenuItem* item = (cSubMenuItem*)Get(getCurrent());
+
+   if (item->getItem()->isAudio)
+      setHelp(tr("Close"), tr("Append"), tr("Insert"), tr("Play"));
+   else
+      setHelp(tr("Close"), 0, 0, 0);
 }
 
 cSubMenu::~cSubMenu() 
@@ -148,130 +192,176 @@ cSubMenu::~cSubMenu()
 // Process Key
 //***************************************************************************
 
-eOSState cSubMenu::ProcessKey(eKeys key)
+int cSubMenu::ProcessKey(int key)
 {
+   int state;
    char flt[500];
-   eOSState state = cOsdMenu::ProcessKey(key);
-   cSubMenuItem* item = (cSubMenuItem*)Get(Current());
 
-   if (state != osUnknown)
+   if ((state = cMenuBase::ProcessKey(key)) != ignore)
       return state;
 
-   switch (key)
+   cSubMenuItem* item = (cSubMenuItem*)Get(getCurrent());
+
+   if (key == kOk)
    {
-      case kOk:
+      if (toSubLevelQuery(queryType) != LmcCom::rqtUnknown)
       {
-         if (toSubLevelTag(tag) != LmcTag::tUnknown)
+         char* subTitle;
+         LmcCom::Parameters pars = filters;
+         int addSub = queryType == LmcCom::rqtRadioApps ? item->getItem()->hasItems : yes;
+
+         if (addSub)
          {
-            char* subTitle;
-            LmcCom::Parameters pars = filters;
-            
             asprintf(&subTitle, "%s / %s ", Title(), item->getItem()->content.c_str());
-            sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), tag == LmcTag::tYear ? atoi(item->getItem()->content.c_str()) : item->getItem()->id);
+            sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), 
+                    queryType == LmcCom::rqtYears ? item->getItem()->content.c_str() : item->getItem()->id.c_str());
             pars.push_back(flt);
             
-            state = AddSubMenu(new cSubMenu(subTitle, lmc, toSubLevelTag(tag), &pars));
+            AddSubMenu(new cSubMenu(this, subTitle, lmc, toSubLevelQuery(queryType), &pars));
             free(subTitle);
-            return state;
          }
-         
-         return osContinue;
-      }
-
-      case kRed:
-      {
-         LmcCom::Parameters pars = filters;
-
-         pars.push_back("cmd:insert");
-         sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), item->getItem()->id);
-         pars.push_back(flt);
-         lmc->execute("playlistcontrol", &pars);
-
-         return osContinue;
-      }
-
-      case kGreen:
-      {
-         LmcCom::Parameters pars = filters;
-
-         pars.push_back("cmd:load");
-         sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), item->getItem()->id);
-         pars.push_back(flt);
-         lmc->execute("playlistcontrol", &pars);
-
-         return osContinue;
       }
       
-      case kYellow:
-      {
-         LmcCom::Parameters pars = filters;
-
-         pars.push_back("cmd:add");
-         sprintf(flt, "%s:%d", LmcTag::toName(toIdTag(tag)), item->getItem()->id);
-         pars.push_back(flt);
-         lmc->execute("playlistcontrol", &pars);
-
-         return osContinue;
-      }
-
-      default: return state;
+      return done;
    }
 
-   return state;
+   else if (item->getItem()->isAudio)
+   {
+      LmcCom::Parameters pars;
+
+      switch (key)
+      {
+         case kGreen:         // append
+         {
+            if (queryType < LmcCom::rqtRadios)
+            {
+               pars = filters;            
+               pars.push_back("cmd:add");
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               lmc->execute("playlistcontrol", &pars);
+            }
+            else
+            {
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               sprintf(flt, "%s playlist add", item->getItem()->command.c_str());
+               lmc->execute(flt, &pars);
+            }
+            
+            return done;
+         }
+
+         case kYellow:       // insert
+         {
+            if (queryType < LmcCom::rqtRadios)
+            {
+               pars = filters;
+               pars.push_back("cmd:insert");
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               lmc->execute("playlistcontrol", &pars);
+            }
+            else
+            {
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               sprintf(flt, "%s playlist insert", item->getItem()->command.c_str());
+               lmc->execute(flt, &pars);
+            }
+            
+            return done;
+         }
+         
+         case kBlue:        // play
+         {     
+            if (queryType < LmcCom::rqtRadios)
+            {
+               pars = filters;
+               pars.push_back("cmd:load");
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               lmc->execute("playlistcontrol", &pars);
+            }
+            else
+            {
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               sprintf(flt, "%s playlist play", item->getItem()->command.c_str());
+               lmc->execute(flt, &pars);
+            }
+            
+            return done;
+         }
+
+         default: 
+            return ignore;
+      }
+   }
+   else
+   {
+      if (key == kGreen || key == kYellow || key == kBlue)
+         return done;
+   }
+
+   return ignore;
 }
 
 //***************************************************************************
-// Main Menu
+// Menu
 //***************************************************************************
 
-cSqueezeMenu::cSqueezeMenu(const char* title, LmcCom* aLmc)
-   : cOsdMenu(title)
+cMenuSqueeze::cMenuSqueeze(const char* aTitle, LmcCom* aLmc)
+   : cMenuBase(aTitle)
 {
    lmc = aLmc;
 
-   SetMenuCategory(mcMain);
-   Clear();
+   Add(new cOsdItem(tr("Artists")));
+   Add(new cOsdItem(tr("Albums")));
+   Add(new cOsdItem(tr("Genres")));
+   Add(new cOsdItem(tr("Years")));
+   Add(new cOsdItem(tr("Play random tracks")));
+   Add(new cOsdItem(tr("Playlists")));
+   Add(new cOsdItem(tr("Radio")));
 
-   cOsdMenu::Add(new cOsdItem(tr("Play random tracks")));
-   cOsdMenu::Add(new cOsdItem(tr("Playlists")));
-   cOsdMenu::Add(new cOsdItem(tr("Genres")));
-   cOsdMenu::Add(new cOsdItem(tr("Artists")));
-   cOsdMenu::Add(new cOsdItem(tr("Albums")));
-   cOsdMenu::Add(new cOsdItem(tr("Years")));
-
-   SetHelp(0, 0, 0, 0);
-
-   Display();
+   setHelp(tr("close"), 0, 0, 0);
 }
 
 //***************************************************************************
 // Process Key
 //***************************************************************************
 
-eOSState cSqueezeMenu::ProcessKey(eKeys key)
+int cMenuSqueeze::ProcessKey(int key)
 {
-   eOSState state = cOsdMenu::ProcessKey(key);
+   int state;
 
-   if (state != osUnknown)
+   if ((state = cMenuBase::ProcessKey(key)) != ignore)
       return state;
 
    switch (key)
    {
+      case kBlue: 
+      case kGreen:
+      case kYellow: return done;
+
       case kOk:
       {
-         switch (Current())
+         switch (getCurrent())
          {
-            case 0: lmc->randomTracks(); return osEnd;
-            case 1: return AddSubMenu(new cSubMenu(tr("Playlists"), lmc, LmcTag::tPlaylist));
-            case 2: return AddSubMenu(new cSubMenu(tr("Genres"), lmc, LmcTag::tGenre));
-            case 3: return AddSubMenu(new cSubMenu(tr("Artists"), lmc, LmcTag::tArtist));
-            case 4: return AddSubMenu(new cSubMenu(tr("Albums"), lmc, LmcTag::tAlbum));
-            case 5: return AddSubMenu(new cSubMenu(tr("Years"), lmc, LmcTag::tYear));
+            case 0: return AddSubMenu(new cSubMenu(this, tr("Artists"), lmc, LmcCom::rqtArtists));
+            case 1: return AddSubMenu(new cSubMenu(this, tr("Albums"), lmc, LmcCom::rqtAlbums));
+            case 2: return AddSubMenu(new cSubMenu(this, tr("Genres"), lmc, LmcCom::rqtGenres));
+            case 3: return AddSubMenu(new cSubMenu(this, tr("Years"), lmc, LmcCom::rqtYears));
+            case 4: lmc->randomTracks(); return done;
+            case 5: return AddSubMenu(new cSubMenu(this, tr("Playlists"), lmc, LmcCom::rqtPlaylists));
+
+            case 6: return AddSubMenu(new cSubMenu(this, tr("Radio"), lmc, LmcCom::rqtRadios));
          }
       }
 
-      default: break;
+      default: 
+         break;
    }
 
-   return state;
+   return ignore;
 }

@@ -40,8 +40,7 @@ class LmcTag
          rRescan,
          tError,
 
-         tRemote,
-         tRemoteTitle,
+         tCurrentTitle,
          tSleep,
          tSleepIn,
          tSyncMaster,
@@ -83,6 +82,8 @@ class LmcTag
          tGenre,
          tTrackDuration,
          tCoverid,
+         tArtworkTrackId,
+         tBitrate,
          tAlbum,
          tYear,
          tUrl,
@@ -96,6 +97,29 @@ class LmcTag
          tAlbumId,
          tTrack,
          tTrackId,
+         tArtworkUrl,
+         tRemote,
+         tRemoteTitle,
+         tRemoteMeta,
+         tContentType,
+
+         // are this tags :o, at leased used for the menu struct
+
+         tRadio,
+
+         // radio adon tags
+
+         tName,
+         tType,
+         tIcon,
+         tCmd,
+         tWeight,
+         tSort,
+         tIsAudio,
+         tHasItems,
+         tItemId,
+         tImage,
+         tWaitingToPlay,
 
          // technical stuff ..
 
@@ -131,5 +155,5 @@ class LmcTag
       char token[2000+TB];
       char* buffer;
       char* pos;
-      LmcCom* lmc;   // only for unescale call -> #TODO redisign later
+      LmcCom* lmc;   // only to call unescape() -> #TODO redisign later?
 };

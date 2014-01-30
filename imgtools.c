@@ -90,6 +90,15 @@ cImage cImageMagickWrapper::createImageCopy()
    return image;
 }
 
+int cImageMagickWrapper::loadImage(const char* data, int size) 
+{
+   Blob blob(data, size); 
+
+   buffer.read(blob);
+
+   return success;
+}
+
 int cImageMagickWrapper::loadImage(const char* fullpath) 
 {
    if (!fullpath || (strlen(fullpath) < 5))

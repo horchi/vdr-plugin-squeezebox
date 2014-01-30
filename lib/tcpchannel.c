@@ -85,7 +85,7 @@ int TcpChannel::openLstn(unsigned short aPort, const char* aLocalHost)
 
       else if ((unsigned int)(localAddr = inet_addr(aLocalHost)) == INADDR_NONE)
       {
-         tell(1, "unknown hostname '%s'", aLocalHost);
+         tell(eloAlways, "Unknown hostname '%s'", aLocalHost);
          return fail;
       }
 
@@ -102,14 +102,14 @@ int TcpChannel::openLstn(unsigned short aPort, const char* aLocalHost)
 
    if ((aHandle = ::socket(PF_INET, SOCK_STREAM, 0)) < 0)
    {
-      tell(1, "Error: ");
+      tell(eloAlways, "Error: ");
       return fail;
    }
 
    // set socket non-blocking
 
    if (fcntl(aHandle, F_SETFL, O_NONBLOCK) < 0)
-      tell(1, "Error: Setting socket options failed, errno (%d)", errno);
+      tell(eloAlways, "Error: Setting socket options failed, errno (%d)", errno);
 
    setsockopt(aHandle, SOL_SOCKET, SO_REUSEADDR,
                (char*)&value, sizeof(value));
@@ -119,7 +119,7 @@ int TcpChannel::openLstn(unsigned short aPort, const char* aLocalHost)
    if (::bind(aHandle, (struct sockaddr*)&localSockAddr, sizeof(localSockAddr)) < 0)
    {
       ::close(aHandle);
-      tell(1, "Error: Bind failed, errno (%d)", errno);
+      tell(eloAlways, "Error: Bind failed, errno (%d)", errno);
 
       return fail;
    }
@@ -232,7 +232,7 @@ int TcpChannel::open(unsigned short aPort, const char* aHost)
    // set socket non-blocking
 
    if (fcntl(aHandle, F_SETFL, O_NONBLOCK) < 0)
-      tell(1, "Error: Setting socket options failed, errno (%d)", errno);
+      tell(eloAlways, "Error: Setting socket options failed, errno (%d)", errno);
 
    // save results
 
@@ -254,7 +254,7 @@ int TcpChannel::flush()
       ;
 
    if (res > 0)
-      tell(0, "flushed %d bytes", res);
+      tell(eloDebug2, "flushed %d bytes", res);
 
    *readBuffer = 0;
    readBufferPending = 0;
@@ -410,7 +410,10 @@ char* TcpChannel::readln()
       else if (result < 0)
       {
          if (errno != EWOULDBLOCK)
-            return 0; // checkErrno();
+         {
+            tell(eloAlways, "Error: Read failed, error was '%m'");
+            return 0;
+         }
          
          // time-out for select
          
@@ -425,15 +428,19 @@ char* TcpChannel::readln()
          // look event
 
          if ((nfds = ::select(handle+1, &readFD, NULL, NULL, &tv)) < 0)
-            return 0; // checkErrno();
+         {
+            tell(eloAlways, "Error: Read failed, error was '%m'");
+            return 0;
+         }
 
          // no event occured -> timeout
          
          if (nfds == 0)
          {
             readBuffer[nReceived] = 0;
+            tell(eloAlways, "Error: Read failed, timeout, error was '%m'");
 
-            return 0; // wrnTimeout;
+            return 0;
          }
       }
       
@@ -441,7 +448,8 @@ char* TcpChannel::readln()
       {
          // connection closed -> eof received
 
-         return 0; // errConnectionClosed;
+         tell(eloAlways, "Error: Read failed, connection closed by server, error was '%m'");
+         return 0;
       }
    }
 
@@ -487,11 +495,6 @@ int TcpChannel::look(uint64_t aTimeout)
 
    if (FD_ISSET(handle, &exceptFD))
       return errUnexpectedEvent;
-
-   // check write ok
-
-   //  if (!FD_ISSET(handle, &writeFD))
-   //     return wrnChannelBlocked;
 
    // check read-event
 
@@ -543,7 +546,7 @@ int TcpChannel::listen(TcpChannel*& child)
 
    if ((aHandle = ::accept(handle, (struct sockaddr*)&remote, (socklen_t*)&len)) < 0)
    {
-      tell(1, "Error: Accept failed, errno was %d - '%s'", errno, strerror(errno));
+      tell(eloAlways, "Error: Accept failed, errno was %d - '%s'", errno, strerror(errno));
       return errAcceptFailed;
    }
 
@@ -664,7 +667,7 @@ int TcpChannel::write(const char* buf, int bufLen)
    if (!bufLen)
       bufLen = strlen(buf);
    
-   tell(eloDebug, "-> [%s]", buf);
+   tell(eloDebug2, "-> [%s]", buf);
 
    do
    {

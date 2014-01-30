@@ -22,8 +22,7 @@ const char* LmcTag::tags[] =
    "rescan",               // Returned with value 1 if the Squeezebox Server is still scanning the database. The results may therefore be incomplete. Not returned if no scan is in progress.
    "error",                // Returned with value "invalid player" if the player this subscription query referred to does no longer exist.In non subscription mode, the query simply echoes itself (i.e. produces no result) if <playerid> is wrong.
 
-   "remote",               // 1 if a remote stream is currently playing.
-   "current_title",        // (tRemoteTitle) Returns the current title for remote streams. Only if remote stream is playing
+   "current_title",        // Returns the current title for remote streams. Only if remote stream is playing
    "sleep",                // If set to sleep, the amount (in seconds) it was set to.
    "will_sleep_in",        // Seconds left until sleeping. Only if set to sleep
    "sync_master",          // ID of the master player in the sync group this player belongs to. Only if synced.
@@ -54,6 +53,8 @@ const char* LmcTag::tags[] =
    "playlist_modified",    // Modification state of the saved playlist (if the current playlist is one). Equivalent to "playlist modified ?".
    "playlist_tracks",
 
+   // tags of status querys track list
+
    "start of track tags",  // dummy entry !!
 
    "playlist index",
@@ -63,6 +64,8 @@ const char* LmcTag::tags[] =
    "genre",
    "duration",
    "coverid",
+   "artwork_track_id",
+   "bitrate",
    "album",
    "year",
    "url",
@@ -76,6 +79,24 @@ const char* LmcTag::tags[] =
    "album_id",
    "track",
    "track_id",
+   "artwork_url",
+   "remote",               // 1 if a remote stream is currently playing.
+   "remote_title",         // Returns the current title for remote streams. Only if remote stream is playing
+   "remoteMeta",
+   "type",                 // tContentType
+   "radio",
+
+   "name",
+   "type",
+   "icon",
+   "cmd",
+   "weight",
+   "sort",
+   "isaudio",
+   "hasitems",
+   "item_id",
+   "image",
+   "waitingToPlay",
 
    0
 };
@@ -116,8 +137,6 @@ int LmcTag::set(const char* data)
    free(buffer);
    buffer = strdup(data);
    pos = buffer;
-   
-   
 
    return success;
 }

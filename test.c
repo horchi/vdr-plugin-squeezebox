@@ -56,6 +56,8 @@ void showTags(char* buf)
 int main(int argc, char** argv)
 {
    const char* lmcHost = "localhost";
+   const char* command = 0;
+   const char* parameter = 0;
    unsigned short lmcPort = 9090;
    char* mac = getMac();
    MemoryStruct cover;
@@ -88,6 +90,8 @@ int main(int argc, char** argv)
          case 'l': if (argv[i+1]) loglevel = atoi(argv[++i]); break;
          case 'h': if (argv[i+1]) lmcHost = argv[++i];        break;
          case 'p': if (argv[i+1]) lmcPort = atoi(argv[++i]);  break;
+         case 'c': if (argv[i+1]) command = argv[++i];        break;
+         case 'P': if (argv[i+1]) parameter = argv[++i];      break;
          case 'e': 
             showTags(lmc->unescape(strdup(argv[i+1])));
             goto EXIT;
@@ -111,6 +115,51 @@ int main(int argc, char** argv)
       tell(0, "Opening connection to LMC server at '%s:%d' failed", lmcHost, lmcPort);
       delete lmc; lmc = 0;
       return fail;
+   }
+
+   tell(0, "mac ist: '%s'", mac);
+
+   // ===================================================================
+
+   if (!isEmpty(command))
+   {
+      int status;
+      LmcCom::RangeList list;
+      char* result = 0;
+      char cmd[200];   *cmd = 0;
+      LmcTag lt(lmc);
+      int tag;
+      const int maxValue = 100;
+      char value[maxValue+TB];
+      LmcCom::Parameters params;
+
+      if (!isEmpty(parameter))
+      {
+         params.push_back(parameter);
+      }
+
+      snprintf(cmd, 200, "%s %d %d", command, 0, 3);
+
+      status = lmc->request(cmd, &params);
+      status += lmc->write("\n");
+      
+      if ((status += lmc->responseP(result)) != success || isEmpty(result))
+      {
+         free(result);
+         tell(eloAlways, "Error: Request of '%s' failed", cmd);
+         return status;
+      }
+      
+      lt.set(result);   
+      tell(eloDebug, "Got [%s]", lmc->unescape(result));
+      free(result); result = 0;
+
+      while (lt.getNext(tag, value, maxValue) != LmcTag::wrnEndOfPacket)
+      {
+         tell(0, "'%s' - '%s'", LmcTag::toName(tag), value);
+      }
+      
+      return 0;
    }
 
    // update server state
@@ -160,18 +209,32 @@ int main(int argc, char** argv)
    int total;
 
    tell(0, "--------------------------");
-   tell(0, "Requesting genres: ");
+   tell(0, "Requesting 'genres': ");
 
-//    if (lmc->queryRange("genres", 0, 100,  &list, total) == success)
-//    {
-//       LmcCom::RangeList::iterator it;
+   if (lmc->queryRange(LmcCom::rqtGenres, 0, 100,  &list, total) == success)
+   {
+      LmcCom::RangeList::iterator it;
+      
+      for (it = list.begin(); it != list.end(); ++it)
+         tell(0, "  '%s'", (*it).content.c_str());
+      
+      if (total > 100)
+         tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
+   }
 
-//       for (it = list.begin(); it != list.end(); ++it)
-//          tell(0, "  '%s'", (*it).content.c_str());
+   tell(0, "--------------------------");
+   tell(0, "Requesting 'radios': ");
 
-//       if (total > 100)
-//          tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
-//    }
+   if (lmc->queryRange(LmcCom::rqtRadios, 0, 100,  &list, total) == success)
+   {
+      LmcCom::RangeList::iterator it;
+      
+      for (it = list.begin(); it != list.end(); ++it)
+         tell(0, "  '%s' - '%s'", (*it).content.c_str(), (*it).command.c_str());
+      
+      if (total > 100)
+         tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
+   }
 
    // tell(0, "--------------------------");
    // tell(0, "Load Album");
