@@ -49,6 +49,7 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    forceNextDraw = yes;
    forceMenuDraw = no;
    forcePlaylistDraw = yes;
+
    border = 10;
    plTop = 0;
    plCurrent = 0;              // current user selected item, or current track (if no user action)
@@ -422,7 +423,7 @@ void cSqueezeOsd::Action()
       fullDraw = forceNextDraw || changesPending;
 
       if (osd && (cTimeMs::Now() > lastDraw+1000 || fullDraw || forceMenuDraw || forcePlaylistDraw))
-      {         
+      {
          if (fullDraw)
          {
             drawOsd();
@@ -601,8 +602,6 @@ int cSqueezeOsd::drawInfoBox()
 
    cPixmap::Lock();
 
-   tell(eloDebug, "Draw infobox");
-
    pixmapInfo[pmText]->Fill(clrTransparent);     // clear box
 
    cTextWrapper tw(currentTrack->title, fontTilte, pixmapInfo[pmText]->ViewPort().Width());
@@ -722,8 +721,6 @@ int cSqueezeOsd::drawPlaylist()
    int imgX = pixmapPlCurrent[pmText]->ViewPort().Width() - imgWH;
    int imgY = imgWH / 4;
 
-   tell(eloDebug, "Draw playlist");
-
    cPixmap::Lock();
 
    pixmapPlaylist[pmText]->Fill(clrTransparent);       // clear box
@@ -779,8 +776,6 @@ int cSqueezeOsd::drawPlaylist()
 
       y += fontPl->Height()+plItemSpace;
    }
-
-   tell(0, "finished playlist draw with %d items", cnt);
 
    pixmapPlaylist[pmBack]->SetAlpha(ALPHA_OPAQUE);
    pixmapPlaylist[pmText]->SetAlpha(ALPHA_OPAQUE);

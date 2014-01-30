@@ -32,7 +32,6 @@ cMenuBase::cMenuBase(const char* aTitle)
 cMenuBase::~cMenuBase()
 { 
    activeMenu = parent; 
-
    free(title); 
    free(red);
    free(green);
@@ -78,6 +77,7 @@ int cMenuBase::ProcessKey(int key)
 
       case kRed:  return end;
       case kBack: return back;
+      case k0:    return done;
    }
 
    return ignore;
@@ -176,10 +176,10 @@ cSubMenu::cSubMenu(cMenuBase* aParent, const char* title, LmcCom* aLmc,
 
    // #TODO, change help info with current item while scrolling
 
-   cSubMenuItem* item = (cSubMenuItem*)Get(getCurrent());
+   cSubMenuItem* item = (cSubMenuItem*)Get(0);
 
-   if (item->getItem()->isAudio)
-      setHelp(tr("Close"), tr("Append"), tr("Insert"), tr("Play"));
+   if (item && item->getItem()->isAudio)
+      setHelp(tr("Close"), tr("Insert"), tr("Append"), tr("Play"));
    else
       setHelp(tr("Close"), 0, 0, 0);
 }
@@ -231,28 +231,7 @@ int cSubMenu::ProcessKey(int key)
 
       switch (key)
       {
-         case kGreen:         // append
-         {
-            if (queryType < LmcCom::rqtRadios)
-            {
-               pars = filters;            
-               pars.push_back("cmd:add");
-               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
-               pars.push_back(flt);
-               lmc->execute("playlistcontrol", &pars);
-            }
-            else
-            {
-               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
-               pars.push_back(flt);
-               sprintf(flt, "%s playlist add", item->getItem()->command.c_str());
-               lmc->execute(flt, &pars);
-            }
-            
-            return done;
-         }
-
-         case kYellow:       // insert
+         case kGreen:
          {
             if (queryType < LmcCom::rqtRadios)
             {
@@ -272,8 +251,30 @@ int cSubMenu::ProcessKey(int key)
             
             return done;
          }
-         
-         case kBlue:        // play
+
+         case kYellow:
+         {
+            if (queryType < LmcCom::rqtRadios)
+            {
+               pars = filters;            
+               pars.push_back("cmd:add");
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               lmc->execute("playlistcontrol", &pars);
+            }
+            else
+            {
+               sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+               pars.push_back(flt);
+               sprintf(flt, "%s playlist add", item->getItem()->command.c_str());
+               lmc->execute(flt, &pars);
+            }
+            
+            return done;
+         }
+  
+
+         case kBlue:         
          {     
             if (queryType < LmcCom::rqtRadios)
             {
@@ -293,7 +294,7 @@ int cSubMenu::ProcessKey(int key)
             
             return done;
          }
-
+         
          default: 
             return ignore;
       }
@@ -324,7 +325,7 @@ cMenuSqueeze::cMenuSqueeze(const char* aTitle, LmcCom* aLmc)
    Add(new cOsdItem(tr("Playlists")));
    Add(new cOsdItem(tr("Radio")));
 
-   setHelp(tr("close"), 0, 0, 0);
+   setHelp(tr("Close"), 0, 0, 0);
 }
 
 //***************************************************************************
