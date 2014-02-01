@@ -47,21 +47,43 @@ void cMenuBase::setHelp(const char* r, const char* g, const char* y, const char*
    free(blue);   blue   = b ? strdup(b) : 0;
 }
 
+//***************************************************************************
+// Process Key
+//***************************************************************************
+
 int cMenuBase::ProcessKey(int key)
 {
    switch (key)
    {
       case kUp|k_Repeat:
-      case kUp:   if (current > 0)         current--; return done;
+      case kUp:
+      {
+         if (current > 0)         
+            current--; 
+         else if (Setup.MenuScrollWrap)
+            current = Count()-1;
+
+         return done;        
+      }
 
       case kDown|k_Repeat:
-      case kDown: if (current < Count()-1) current++; return done;
+      case kDown: 
+      {
+         if (current < Count()-1) 
+            current++; 
+         else if (Setup.MenuScrollWrap)
+            current = 0;
+
+         return done;
+      }
          
       case kLeft|k_Repeat:
       case kLeft:
       {
          if (current > 0)
             current = max(current-visibleItems, 0);
+         else if (Setup.MenuScrollWrap)
+            current = Count()-1;
 
          return done;
       }
@@ -71,6 +93,8 @@ int cMenuBase::ProcessKey(int key)
       {
          if (current < Count()-1)
             current = min(current+visibleItems, Count()-1);
+         else if (Setup.MenuScrollWrap)
+            current = 0;
 
          return done;
       }
@@ -93,10 +117,12 @@ cSubMenu::Query cSubMenu::queries[] =
    { LmcCom::rqtGenres,    LmcTag::tGenreId,    LmcCom::rqtArtists    },
    { LmcCom::rqtArtists,   LmcTag::tArtistId,   LmcCom::rqtAlbums     },
    { LmcCom::rqtAlbums,    LmcTag::tAlbumId,    LmcCom::rqtTracks     },
+   { LmcCom::rqtNewMusic,  LmcTag::tAlbumId,    LmcCom::rqtUnknown    },
    { LmcCom::rqtYears,     LmcTag::tYear,       LmcCom::rqtAlbums     },
    { LmcCom::rqtTracks,    LmcTag::tTrackId,    LmcCom::rqtUnknown    },
    { LmcCom::rqtRadios,    LmcTag::tName,       LmcCom::rqtRadioApps  },
    { LmcCom::rqtRadioApps, LmcTag::tItemId,     LmcCom::rqtRadioApps  },
+   { LmcCom::rqtFavorites, LmcTag::tItemId,     LmcCom::rqtUnknown    },
 
    { LmcCom::rqtUnknown }
 };
@@ -161,6 +187,9 @@ cSubMenu::cSubMenu(cMenuBase* aParent, const char* title, LmcCom* aLmc,
    {
       if (aFilters)
          filters = *aFilters;
+
+      if (queryType == LmcCom::rqtNewMusic)
+         filters.push_back("sort:new");
 
       if (lmc && lmc->queryRange(queryType, 0, maxElements, &list, total, "", &filters) == success)
       {
@@ -317,13 +346,15 @@ cMenuSqueeze::cMenuSqueeze(const char* aTitle, LmcCom* aLmc)
 {
    lmc = aLmc;
 
-   Add(new cOsdItem(tr("Artists")));
-   Add(new cOsdItem(tr("Albums")));
-   Add(new cOsdItem(tr("Genres")));
-   Add(new cOsdItem(tr("Years")));
-   Add(new cOsdItem(tr("Play random tracks")));
-   Add(new cOsdItem(tr("Playlists")));
-   Add(new cOsdItem(tr("Radio")));
+   Add(new cMenuItem(tr("Artists")));
+   Add(new cMenuItem(tr("Albums")));
+   Add(new cMenuItem(tr("Genres")));
+   Add(new cMenuItem(tr("Years")));
+   Add(new cMenuItem(tr("Play random tracks")));
+   Add(new cMenuItem(tr("Playlists")));
+   Add(new cMenuItem(tr("Radio")));
+   Add(new cMenuItem(tr("Favorites")));
+   Add(new cMenuItem(tr("New Music")));
 
    setHelp(tr("Close"), 0, 0, 0);
 }
@@ -339,6 +370,8 @@ int cMenuSqueeze::ProcessKey(int key)
    if ((state = cMenuBase::ProcessKey(key)) != ignore)
       return state;
 
+   cMenuItem* item = (cMenuItem*)Get(getCurrent());
+
    switch (key)
    {
       case kBlue: 
@@ -349,14 +382,15 @@ int cMenuSqueeze::ProcessKey(int key)
       {
          switch (getCurrent())
          {
-            case 0: return AddSubMenu(new cSubMenu(this, tr("Artists"), lmc, LmcCom::rqtArtists));
-            case 1: return AddSubMenu(new cSubMenu(this, tr("Albums"), lmc, LmcCom::rqtAlbums));
-            case 2: return AddSubMenu(new cSubMenu(this, tr("Genres"), lmc, LmcCom::rqtGenres));
-            case 3: return AddSubMenu(new cSubMenu(this, tr("Years"), lmc, LmcCom::rqtYears));
+            case 0: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtArtists));
+            case 1: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtAlbums));
+            case 2: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtGenres));
+            case 3: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtYears));
             case 4: lmc->randomTracks(); return done;
-            case 5: return AddSubMenu(new cSubMenu(this, tr("Playlists"), lmc, LmcCom::rqtPlaylists));
-
-            case 6: return AddSubMenu(new cSubMenu(this, tr("Radio"), lmc, LmcCom::rqtRadios));
+            case 5: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtPlaylists));
+            case 6: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtRadios));
+            case 7: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtFavorites));
+            case 8: return AddSubMenu(new cSubMenu(this, item->getText(), lmc, LmcCom::rqtNewMusic));
          }
       }
 

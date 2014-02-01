@@ -157,21 +157,21 @@ int LmcCom::update(int stateOnly)
             break;
          }
          
-         case LmcTag::tId:             t.id = atoi(value);                                        break;
-         case LmcTag::tYear:           t.year = atoi(value);                                      break;
-         case LmcTag::tTitle:          snprintf(t.title, sizeof(t.title), "%s", value);           break;
-         case LmcTag::tArtist:         snprintf(t.artist, sizeof(t.artist), "%s", value);         break;
-         case LmcTag::tGenre:          snprintf(t.genre, sizeof(t.genre), "%s", value);           break;
-         case LmcTag::tTrackDuration:  t.duration = atoi(value);                                  break;  
+         case LmcTag::tId:             t.id = atoi(value);                                          break;
+         case LmcTag::tYear:           t.year = atoi(value);                                        break;
+         case LmcTag::tTitle:          snprintf(t.title, sizeof(t.title), "%s", value);             break;
+         case LmcTag::tArtist:         snprintf(t.artist, sizeof(t.artist), "%s", value);           break;
+         case LmcTag::tGenre:          snprintf(t.genre, sizeof(t.genre), "%s", value);             break;
+         case LmcTag::tTrackDuration:  t.duration = atoi(value);                                    break;  
          case LmcTag::tArtworkTrackId: snprintf(t.artworkTrackId, sizeof(t.artworkTrackId), "%s", value); break; 
-         case LmcTag::tArtworkUrl:     snprintf(t.artworkurl, sizeof(t.artworkurl), "%s", value); break;
-         case LmcTag::tAlbum:          snprintf(t.album, sizeof(t.album), "%s", value);           break;
-         case LmcTag::tRemoteTitle:    snprintf(t.remoteTitle, sizeof(t.remoteTitle), "%s", value);       break;
-         case LmcTag::tContentType:    snprintf(t.contentType, sizeof(t.contentType), "%s", value);       break;
-         case LmcTag::tRemote:         t.remote = atoi(value);                                    break;
-         case LmcTag::tBitrate:        t.bitrate = atoi(value);                                   break;
+         case LmcTag::tArtworkUrl:     snprintf(t.artworkurl, sizeof(t.artworkurl), "%s", value);   break;
+         case LmcTag::tAlbum:          snprintf(t.album, sizeof(t.album), "%s", value);             break;
+         case LmcTag::tRemoteTitle:    snprintf(t.remoteTitle, sizeof(t.remoteTitle), "%s", value); break;
+         case LmcTag::tContentType:    snprintf(t.contentType, sizeof(t.contentType), "%s", value); break;
+         case LmcTag::tRemote:         t.remote = atoi(value);                                      break;
+         case LmcTag::tBitrate:        t.bitrate = atoi(value);                                     break;
 
-         // case LmcTag::tUrl:         snprintf(t.url, sizeof(t.url), "%s", url);                 break;
+         // case LmcTag::tUrl:         snprintf(t.url, sizeof(t.url), "%s", url);                   break;
       } 
    }
 
@@ -254,11 +254,13 @@ int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
 
    switch (queryType)
    {
-      case rqtGenres:    sprintf(query, "genres");    break;
-      case rqtArtists:   sprintf(query, "artists");   break;
-      case rqtAlbums:    sprintf(query, "albums");    break;
-      case rqtTracks:    sprintf(query, "tracks");    break;
-      case rqtPlaylists: sprintf(query, "playlists"); break;
+      case rqtGenres:    sprintf(query, "genres");          break;
+      case rqtArtists:   sprintf(query, "artists");         break;
+      case rqtAlbums:    sprintf(query, "albums");          break;
+      case rqtNewMusic:  sprintf(query, "albums");          break;
+      case rqtTracks:    sprintf(query, "tracks");          break;
+      case rqtPlaylists: sprintf(query, "playlists");       break;
+      case rqtFavorites: sprintf(query, "favorites items"); break;
 
       case rqtRadioApps: sprintf(query, "%s items", special); break;
 
@@ -271,7 +273,7 @@ int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
          sprintf(query, "radios");    
          firstTag = LmcTag::tIcon;
          break;
-      
+     
       default: break;
    }
 
@@ -330,6 +332,7 @@ int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
             if (tag == LmcTag::tArtist)  item.content = value;
             break;
          }
+         case rqtNewMusic:
          case rqtAlbums:
          {
             item.isAudio = yes;
@@ -342,12 +345,15 @@ int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
             if (tag == LmcTag::tTitle)   item.content = value;
             break;
          }
+         case rqtFavorites:
+            item.command = "favorites";
          case rqtRadioApps:
          {
             if      (tag == LmcTag::tName)     item.content = value;
             else if (tag == LmcTag::tTitle)    setQueryTitle(value);
             else if (tag == LmcTag::tHasItems) item.hasItems = atoi(value);
             else if (tag == LmcTag::tIsAudio)  item.isAudio = atoi(value);
+
             break;
          }
          case rqtYears:

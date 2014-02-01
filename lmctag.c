@@ -145,7 +145,7 @@ int LmcTag::set(const char* data)
 // Get Next
 //***************************************************************************
 
-int LmcTag::getNext(int& tag, char* value, int max, int track)
+int LmcTag::getNext(int& tag, char* value, unsigned short max, int track)
 {
    int status;
    char name[100+TB];
@@ -158,7 +158,7 @@ int LmcTag::getNext(int& tag, char* value, int max, int track)
    return tag != tUnknown ? success : (int)wrnUnknownTag;
 }
 
-int LmcTag::getNext(char* name, char* value, int max)
+int LmcTag::getNext(char* name, char* value, unsigned short max)
 {
    int status;
    char* v;
@@ -172,7 +172,11 @@ int LmcTag::getNext(char* name, char* value, int max)
 
       if (v = strchr(token, ':'))
       {
-         strcpy(value, v+1);
+         if (strlen(v+1) > max)
+            tell(eloDetail, "Info: Value '%s' exceed max size, truncated", v+1);
+
+         strncpy(value, v+1, max);
+         value[max] = 0;
          *v = 0;
       }
 

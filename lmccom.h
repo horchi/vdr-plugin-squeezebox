@@ -43,11 +43,13 @@ class LmcCom : public TcpChannel
          rqtGenres,
          rqtArtists,
          rqtAlbums,
+         rqtNewMusic,
          rqtTracks,
          rqtYears,
          rqtPlaylists,
          rqtRadios,
-         rqtRadioApps
+         rqtRadioApps,
+         rqtFavorites
       };
 
       struct ListItem

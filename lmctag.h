@@ -145,8 +145,8 @@ class LmcTag
 
       int set(const char* data);
 
-      int getNext(int& tag, char* value, int max, int track = no);
-      int getNext(char* name, char* value, int max);
+      int getNext(int& tag, char* value, unsigned short max, int track = no);
+      int getNext(char* name, char* value, unsigned short max);
 
    protected:
 

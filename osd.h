@@ -56,6 +56,8 @@ class cSqueezeOsd : public cThread
          return done;
       }
 
+      void setActivity() { lastActivityAt = time(0); }
+
    protected:
 
       int init();
@@ -69,13 +71,13 @@ class cSqueezeOsd : public cThread
       int drawPlaylist();
       int drawStatus();
       int drawButtons();
-      int drawVolume(int x, int y, int width);
+      int drawVolume(cPixmap* pixmap, int x, int y, int width);
       int drawMenu();
 
       int createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
                     tColor color, tColor blend, int radius);
 
-      int drawSymbol(const char* name, int x, int y, int width, int height, cPixmap* pixmap = 0);
+      int drawSymbol(cPixmap* pixmap, const char* name, int& x, int y, int width = na, int height = na);
 
       const char* Red() 
       {
@@ -129,17 +131,16 @@ class cSqueezeOsd : public cThread
       int menuItems;
       int menuItemSpace;
       int visibleMenuItems;
-      int symbolBoxHeight;
       int border;                 // border width in pixel
-      int coverAreaWidth;
-      int coverAreaHeight;
 
       cImageMagickWrapper* imgLoader;
       LmcCom::PlayerState* currentState;
 
+      cPixmap* pixmapCover[pmCount];
       cPixmap* pixmapInfo[pmCount];
       cPixmap* pixmapPlaylist[pmCount];
       cPixmap* pixmapPlCurrent[pmCount];
+      cPixmap* pixmapSymbols[pmCount];
       cPixmap* pixmapStatus[pmCount];
 
       cPixmap* pixmapBtnRed[pmCount];
@@ -159,7 +160,10 @@ class cSqueezeOsd : public cThread
       tColor clrBox;
       tColor clrBoxBlend;
       tColor clrTextDark;
-      
+
+      unsigned short alpha;
+      time_t lastActivityAt;
+
       cMyStatus* statusMonitor;
 };
 

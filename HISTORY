@@ -2,6 +2,16 @@
 VDR Plugin 'squeezebox' Revision History
 ----------------------------------------
 
+2014-01-30: Version 0.0.9
+  - added   station play time for webradio instead of track time/duration
+  - added   'favorites' to menu
+  - added   'new music' to menu
+  - bugfix  fixed missing PNG error
+  - added   support of VDRs 'MenuScrollWrap' setting
+  - added   shade on inacivity (use README for details)
+  - added   start replay on plugin start
+  - added   dimmed cover as menu background
+
 2014-01-28: Version 0.0.8
   - added   key repead
   - added   support of long artist, genre, ... lists

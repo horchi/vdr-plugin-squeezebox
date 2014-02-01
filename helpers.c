@@ -4,14 +4,18 @@
 #include "helpers.h"
 #include <vdr/skins.h>
 
-cOsd *CreateOsd(int Left, int Top, int Width, int Height) {
-    cOsd *osd = cOsdProvider::NewOsd(Left, Top);
-    if (osd) {
-        tArea Area = { 0, 0, Width, Height,  32 };
-        if (osd->SetAreas(&Area, 1) == oeOk) {
-            return osd;
-        }
-    }
+cOsd* CreateOsd(int Left, int Top, int Width, int Height) 
+{
+   cOsd* osd = cOsdProvider::NewOsd(Left, Top);
+
+   if (osd) 
+   {
+      tArea Area = { 0, 0, Width, Height,  32 };
+      if (osd->SetAreas(&Area, 1) == oeOk) 
+      {
+         return osd;
+      }
+   }
     return NULL;
 }
 

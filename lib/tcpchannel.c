@@ -43,7 +43,7 @@ TcpChannel::TcpChannel(int aTimeout, int aHandle)
    lookAheadChar = false;
    lookAhead = 0;
 
-   readBufferSize = 1000;
+   readBufferSize = 2048;
    readBuffer = (char*)malloc(readBufferSize+TB);
    *readBuffer = 0;
    readBufferPending = 0;
@@ -347,6 +347,8 @@ int TcpChannel::read(char* buf, int bufLen, int ln)
 
 char* TcpChannel::readln()
 {
+//   const int step = 2048;
+   int resizeStep = 1024;
    struct timeval tv;
    int nfds, result;
    fd_set readFD;
@@ -364,22 +366,22 @@ char* TcpChannel::readln()
       lookAhead = false;
       nReceived++;
    }
-
-   const int step = 100;
    
    while (true)
    {
       // need resize ?
 
-      if (nReceived+step >= readBufferSize)
+      if (nReceived+resizeStep >= readBufferSize)
       {
-         readBufferSize += step*2;
+         resizeStep = resizeStep * 2;
+         readBufferSize = ((nReceived+resizeStep) / resizeStep + 1) * resizeStep;
+
          readBuffer = (char*)realloc(readBuffer, readBufferSize+TB);
       }
       
       // read data
 
-      result = ::read(handle, readBuffer + nReceived, step);
+      result = ::read(handle, readBuffer + nReceived, resizeStep);
 
       if (result > 0)
       {

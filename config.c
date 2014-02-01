@@ -25,6 +25,7 @@ cSqueezeConfig::cSqueezeConfig()
    squeezeCmd = strdup("/usr/local/bin/squeezelite");
    playerName = strdup("VDR-squeeze");
    audioDevice = strdup("");
+   shadeTime = 0;
 
    mac = getMac();
 }

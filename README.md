@@ -115,7 +115,9 @@ Configuration:
   - squeezebox.lmcPort
     port of LMSs CLI interface (default 9090)
 
-
+  - squeezebox.shadeTime
+    inactivity time to shade the OSD 0 for off (default 0)
+    
 Handling:
 ---------
 

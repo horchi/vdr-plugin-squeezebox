@@ -129,16 +129,14 @@ int main(int argc, char** argv)
       char cmd[200];   *cmd = 0;
       LmcTag lt(lmc);
       int tag;
-      const int maxValue = 100;
+      const int maxValue = 200;
       char value[maxValue+TB];
       LmcCom::Parameters params;
 
       if (!isEmpty(parameter))
-      {
          params.push_back(parameter);
-      }
 
-      snprintf(cmd, 200, "%s %d %d", command, 0, 3);
+      snprintf(cmd, 200, "%s %d %d", command, 0, 200000);
 
       status = lmc->request(cmd, &params);
       status += lmc->write("\n");
@@ -149,17 +147,15 @@ int main(int argc, char** argv)
          tell(eloAlways, "Error: Request of '%s' failed", cmd);
          return status;
       }
-      
-      lt.set(result);   
-      tell(eloDebug, "Got [%s]", lmc->unescape(result));
+
+      lt.set(result);
+      printf("Data [%s]\n", result);
       free(result); result = 0;
 
       while (lt.getNext(tag, value, maxValue) != LmcTag::wrnEndOfPacket)
-      {
          tell(0, "'%s' - '%s'", LmcTag::toName(tag), value);
-      }
       
-      return 0;
+      goto EXIT;
    }
 
    // update server state

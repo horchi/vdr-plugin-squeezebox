@@ -36,7 +36,6 @@ class cSqueezeControl : public cControl
       LmcCom* lmc;
       cSqueezeOsd* osdThread;
       cPluginSqueezebox* plugin;
-      int startDone;
       int buttonLevel;
 };
 
@@ -51,7 +50,6 @@ cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aResDir
   
    buttonLevel = 0; 
    resDir = strdup(aResDir);
-   startDone = no;
    lmc = new LmcCom(cfg.mac);
    osdThread = new cSqueezeOsd(resDir);
    osdThread->Start();
@@ -87,11 +85,8 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
 {
    eOSState state = osContinue; // cControl::ProcessKey(key);
 
-   if (!startDone && player->started())
-   {
-      startDone = yes;
-      // lmc->resume();
-   }
+   if (key != kNone)
+       osdThread->setActivity();
 
    // check if osd handle this key ...
 
@@ -266,20 +261,21 @@ cMenuSetupPage* cPluginSqueezebox::SetupMenu()
 
 bool cPluginSqueezebox::SetupParse(const char* Name, const char* Value)
 {
-  if      (!strcasecmp(Name, "logLevel"))     cfg.logLevel = atoi(Value);
-  else if (!strcasecmp(Name, "lmcPort"))      cfg.lmcPort = atoi(Value);
-  else if (!strcasecmp(Name, "lmcHttpPort"))  cfg.lmcHttpPort = atoi(Value);
-
-  else if (!strcasecmp(Name, "lmcHost"))      { free(cfg.lmcHost);     cfg.lmcHost = strdup(Value); }
-  else if (!strcasecmp(Name, "squeezeCmd"))   { free(cfg.squeezeCmd);  cfg.squeezeCmd = strdup(Value); }
-  else if (!strcasecmp(Name, "playerName"))   { free(cfg.playerName);  cfg.playerName = strdup(Value); }
-  else if (!strcasecmp(Name, "playerMac"))    { free(cfg.mac);         cfg.mac = strdup(Value); }
-  else if (!strcasecmp(Name, "audioDevice"))  { free(cfg.audioDevice); cfg.audioDevice = strdup(Value); }
-
-  else
-     return false;
-
-  return true;
+   if      (!strcasecmp(Name, "logLevel"))     cfg.logLevel = atoi(Value);
+   else if (!strcasecmp(Name, "lmcPort"))      cfg.lmcPort = atoi(Value);
+   else if (!strcasecmp(Name, "lmcHttpPort"))  cfg.lmcHttpPort = atoi(Value);
+   else if (!strcasecmp(Name, "shadeTime"))    cfg.shadeTime = atoi(Value);
+   
+   else if (!strcasecmp(Name, "lmcHost"))      { free(cfg.lmcHost);     cfg.lmcHost = strdup(Value); }
+   else if (!strcasecmp(Name, "squeezeCmd"))   { free(cfg.squeezeCmd);  cfg.squeezeCmd = strdup(Value); }
+   else if (!strcasecmp(Name, "playerName"))   { free(cfg.playerName);  cfg.playerName = strdup(Value); }
+   else if (!strcasecmp(Name, "playerMac"))    { free(cfg.mac);         cfg.mac = strdup(Value); }
+   else if (!strcasecmp(Name, "audioDevice"))  { free(cfg.audioDevice); cfg.audioDevice = strdup(Value); }
+   
+   else
+      return false;
+   
+   return true;
 }
 
 bool cPluginSqueezebox::Service(const char* Id, void* Data)

@@ -27,6 +27,7 @@ class cSqueezeConfig
       char* mac;
       char* audioDevice;
       unsigned short logLevel;
+      time_t shadeTime;
 };
 
 extern cSqueezeConfig cfg;
