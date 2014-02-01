@@ -869,9 +869,12 @@ int cSqueezeOsd::drawStatus()
 
    x = border;
 
-   asprintf(&name, "%s.png", currentState->mode);
-   drawSymbol(pixmapSymbols[pmText], name, x, 0);
-   free(name);
+   if (!isEmpty(currentState->mode))
+   {
+      asprintf(&name, "%s.png", currentState->mode);
+      drawSymbol(pixmapSymbols[pmText], name, x, 0);
+      free(name);
+   }
    
    x += 2 * border;
    asprintf(&name, "shuffle%d.png", currentState->plShuffle);

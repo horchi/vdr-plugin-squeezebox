@@ -559,7 +559,7 @@ int LmcCom::response(char* result, int max)
             sprintf(result, "%.*s", max, p);
          
          if (loglevel >= eloDebug)
-            tell(eloDebug, "<- (response %d bytes) [%s]", strlen(buf), unescape(p));
+            tell(eloDebug2, "<- (response %d bytes) [%s]", strlen(buf), unescape(p));
       }
       else
       {
