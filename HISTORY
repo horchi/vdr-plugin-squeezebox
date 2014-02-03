@@ -2,6 +2,11 @@
 VDR Plugin 'squeezebox' Revision History
 ----------------------------------------
 
+2014-02-02: Version 0.0.10
+  - change  fixed spacing below cover box
+  - change  added lyrics 
+  - bugfix  waiting on player startup
+
 2014-01-30: Version 0.0.9
   - added   station play time for webradio instead of track time/duration
   - added   'favorites' to menu

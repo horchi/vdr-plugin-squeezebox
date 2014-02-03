@@ -115,6 +115,9 @@ int cSqueezePlayer::startPlayer()
    close(fd[1]);     // Don't need writing end of the stderr pipe in parent.
    close(wrfd[0]);   // Don't need the reading end of the stdin pipe in the parent
    
+   // take a breath to give squeezelite time to initalize
+
+   usleep(500000);
    tell(eloAlways, "started %s with pid %d\n", cfg.squeezeCmd, pid);
    running = yes;
 
@@ -148,6 +151,8 @@ int cSqueezePlayer::startPlayer()
 
 int cSqueezePlayer::stopPlayer()
 {
+   running = no;
+
    if (pid)
    {
       tell(eloAlways, "stopping player");

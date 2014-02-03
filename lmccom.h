@@ -115,6 +115,7 @@ class LmcCom : public TcpChannel
          char artworkurl[500+TB];
          char remoteTitle[500+TB];
          char contentType[100+TB];
+         char lyrics[10000+TB];
 
          unsigned int bitrate;
          unsigned short remote;

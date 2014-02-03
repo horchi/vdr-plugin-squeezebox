@@ -102,6 +102,7 @@ class LmcTag
          tRemoteTitle,
          tRemoteMeta,
          tContentType,
+         tLyrics,
 
          // are this tags :o, at leased used for the menu struct
 

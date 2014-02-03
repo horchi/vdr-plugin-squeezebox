@@ -78,8 +78,8 @@ int LmcCom::update(int stateOnly)
 {
    LmcLock;
 
-   const int maxValue = 500;    // 500 due to long url tag
-   char value[maxValue+TB];
+   const int maxValue = 10000;
+   char* value = 0;
    int tag;
 
    LmcTag lt(this);
@@ -88,24 +88,22 @@ int LmcCom::update(int stateOnly)
    int count = 0;
    TrackInfo t;
    int track = no;
+   char* buf = 0;
 
    memset(&playerState, 0, sizeof(playerState));
    tracks.clear();
 
    status += queryInt("playlist tracks", count);
-   query("version",               playerState.version,  sizeof(playerState.version));
-   queryInt("mixer muting",       playerState.muted);
+   query("version", playerState.version,  sizeof(playerState.version));
+   queryInt("mixer muting", playerState.muted);
 
    if (status != success)
       return status;
 
-   int size = 500 + 600 * count;
-   char* buf = (char*)malloc(size);
-
-   if (!stateOnly)   
+   if (!stateOnly)
       count = max(count, 100);
 
-   char* param = escape("tags:agdluyKJNxro");
+   char* param = escape("tags:agdluyKJNxrow");
    sprintf(cmd, "status 0 %d %s", count, param);
    free(param);
 
@@ -114,7 +112,7 @@ int LmcCom::update(int stateOnly)
    LmcDoLock;
    status = request(cmd);
    status += write("\n");
-   status += response(buf, size);
+   status += responseP(buf);
    LmcUnLock;
 
    if (status != success)
@@ -128,7 +126,8 @@ int LmcCom::update(int stateOnly)
    free(buf);
 
    t.index = na;
-   
+   value = (char*)malloc(maxValue+TB);
+
    while (lt.getNext(tag, value, maxValue, track) != LmcTag::wrnEndOfPacket)
    {
       switch (tag)
@@ -168,12 +167,15 @@ int LmcCom::update(int stateOnly)
          case LmcTag::tAlbum:          snprintf(t.album, sizeof(t.album), "%s", value);             break;
          case LmcTag::tRemoteTitle:    snprintf(t.remoteTitle, sizeof(t.remoteTitle), "%s", value); break;
          case LmcTag::tContentType:    snprintf(t.contentType, sizeof(t.contentType), "%s", value); break;
+         case LmcTag::tLyrics:         snprintf(t.lyrics, sizeof(t.lyrics), "%s", value);           break;
          case LmcTag::tRemote:         t.remote = atoi(value);                                      break;
          case LmcTag::tBitrate:        t.bitrate = atoi(value);                                     break;
 
          // case LmcTag::tUrl:         snprintf(t.url, sizeof(t.url), "%s", url);                   break;
       } 
    }
+
+   free(value);
 
    if (t.index != na)
    {

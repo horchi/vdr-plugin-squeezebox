@@ -16,7 +16,7 @@
 
 #include "lmccom.h"
 
-static const char *VERSION        = "0.0.9";
+static const char *VERSION        = "0.0.10";
 static const char *DESCRIPTION    = "Squeezebox  - a client for the Logitech Media Server";
 static const char *MAINMENUENTRY  = "Squeezebox";
 
@@ -33,7 +33,7 @@ class cSqueezePlayer : public cPlayer, cThread
       
       virtual void Stop();
 
-      int started() { return running; }
+      int isRunning() { return running; }
 
    protected:
 

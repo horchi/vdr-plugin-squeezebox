@@ -227,7 +227,7 @@ int cSqueezeOsd::init()
 
       int symbolBoxHeight = btnWidth / 2;
       int coverAreaWidth = cOsd::OsdWidth() / 2 - 2 * border;
-      int coverAreaHeight = cOsd::OsdHeight() - symbolBoxHeight - stHeight - 4 * border;
+      int coverAreaHeight = cOsd::OsdHeight() - symbolBoxHeight - stHeight - 5 * border;
       int menuHeight = coverAreaHeight - stHeight - border;
 
       plItems = (plHeight-2*border) / (fontPl->Height()*2 + plItemSpace);
@@ -996,7 +996,6 @@ int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
 
    // check cache
 
-   tell(eloDebug, "Lookup track artwork '%s'", hash.c_str());
    image = imgLoader->fromCache(hash);
 
    if (!image)
@@ -1023,6 +1022,8 @@ int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
 int cSqueezeOsd::drawCover()
 {
    MemoryStruct cover;
+   LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
+   int y = 0;
 
    if (!osd)
       return done;
@@ -1031,24 +1032,61 @@ int cSqueezeOsd::drawCover()
    pixmapMenu[pmText]->SetAlpha(ALPHA_TRANSPARENT);
    pixmapCover[pmText]->Fill(clrTransparent);     // clear box
 
-   lmc->getCurrentCover(&cover, lmc->getCurrentTrack());
+   // #TODO, add cover to cache
+
+   lmc->getCurrentCover(&cover, currentTrack);
 
    // optional store the cover on FS
    // storeFile(&cover, "/tmp/squeeze_cover.jpg");
 
    if (imgLoader->loadImage(cover.memory, cover.size) == success)
    {
-      unsigned short border = 140;
+      int imgHW = pixmapCover[pmText]->ViewPort().Height() / 6.0 * 4.0;
+      int x = 0;
 
-      int imgWidthHeight = pixmapCover[pmText]->ViewPort().Width() - 2 * border;
-      int y = (pixmapCover[pmText]->ViewPort().Height() - imgWidthHeight) / 2;
+      y = pixmapCover[pmText]->ViewPort().Height() / 6.0;
 
-      cImage* image = imgLoader->createImage(imgWidthHeight, imgWidthHeight, yes);
+      if (!isEmpty(currentTrack->lyrics))
+      {
+         y = 10;
+         imgHW = pixmapCover[pmText]->ViewPort().Height() / 2;
+      }
+
+      x = (pixmapCover[pmText]->ViewPort().Width() - imgHW) / 2;
+
+      cImage* image = imgLoader->createImage(imgHW, imgHW, yes);
 
       if (image)
       {
-         pixmapCover[pmText]->DrawImage(cPoint(border, y), *image);
+         pixmapCover[pmText]->DrawImage(cPoint(x, y), *image);
+         y += border + imgHW;
          delete image;
+      }
+   }
+   
+   // lyrics
+
+   if (!isEmpty(currentTrack->lyrics))
+   {
+      cTextWrapper tw(currentTrack->lyrics, fontPl, pixmapCover[pmText]->ViewPort().Width());
+      
+      int height = pixmapCover[pmText]->ViewPort().Height() - y;
+      int lineCount = height / fontPl->Height();
+
+//       static cPixmap* pixmap = osd->CreatePixmap(1, cRect(x, y, width, height));
+
+//       pixmap->Fill(clrTransparent);     // clear box
+      
+//       tell(0, "have %d lines, dispay max %d, height is %d, %d characters", 
+//            tw.Lines(), lineCount, height, strlen(currentTrack->lyrics));
+
+      for (int l = 0; l < lineCount && l < tw.Lines(); l++)
+      {
+         pixmapCover[pmText]->DrawText(cPoint(0, y), tw.GetLine(l), 
+                                       clrWhite, clrTransparent, fontPl, 
+                                       pixmapCover[pmText]->ViewPort().Width());
+         
+         y += fontPl->Height();
       }
    }
 

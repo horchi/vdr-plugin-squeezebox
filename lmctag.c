@@ -84,6 +84,7 @@ const char* LmcTag::tags[] =
    "remote_title",         // Returns the current title for remote streams. Only if remote stream is playing
    "remoteMeta",
    "type",                 // tContentType
+   "lyrics",
    "radio",
 
    "name",

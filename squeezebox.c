@@ -25,6 +25,8 @@ class cSqueezeControl : public cControl
       cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aResDir);
       virtual ~cSqueezeControl();
 
+      virtual int init();
+
       virtual void Hide() { osdThread->hide(); };
       virtual cOsdObject* GetInfo() { return 0; }
       virtual eOSState ProcessKey(eKeys key);
@@ -37,6 +39,7 @@ class cSqueezeControl : public cControl
       cSqueezeOsd* osdThread;
       cPluginSqueezebox* plugin;
       int buttonLevel;
+      int initialized;
 };
 
 //***************************************************************************
@@ -50,22 +53,9 @@ cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aResDir
   
    buttonLevel = 0; 
    resDir = strdup(aResDir);
-   lmc = new LmcCom(cfg.mac);
-   osdThread = new cSqueezeOsd(resDir);
-   osdThread->Start();
-
-   tell(eloAlways, "Trying connetion to '%s:%d', my mac is '%s'", cfg.lmcHost, cfg.lmcPort, cfg.mac);
-
-   if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
-   {
-      tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed", 
-           cfg.lmcHost, cfg.lmcPort);
-   }
-   else
-   {
-      tell(eloAlways, "Connection to LMC server at '%s:%d' established", 
-           cfg.lmcHost, cfg.lmcPort);
-   }
+   lmc = 0;
+   osdThread = 0;
+   initialized = no;
 }
 
 cSqueezeControl::~cSqueezeControl()
@@ -78,12 +68,57 @@ cSqueezeControl::~cSqueezeControl()
 }
 
 //***************************************************************************
+// Init
+//***************************************************************************
+
+int cSqueezeControl::init()
+{
+   delete lmc;       lmc = 0;
+   delete osdThread; osdThread = 0;
+
+   lmc = new LmcCom(cfg.mac);
+
+   tell(eloAlways, "Trying connetion to '%s:%d', my mac is '%s'", 
+        cfg.lmcHost, cfg.lmcPort, cfg.mac);
+
+   if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
+   {
+      tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed", 
+           cfg.lmcHost, cfg.lmcPort);
+
+      return fail;
+   }
+
+   tell(eloAlways, "Connection to LMC server at '%s:%d' established", 
+        cfg.lmcHost, cfg.lmcPort);
+
+   osdThread = new cSqueezeOsd(resDir);
+   osdThread->Start();
+
+   initialized = yes;
+
+   return success;
+}
+
+//***************************************************************************
 // Process Key
 //***************************************************************************
 
 eOSState cSqueezeControl::ProcessKey(eKeys key)
 {
-   eOSState state = osContinue; // cControl::ProcessKey(key);
+   eOSState state = osContinue;
+
+   if (!initialized)
+   {
+      if (!player->isRunning())
+      {
+         tell(eloAlways, "Still waiting on player");
+         return state;
+      }
+
+      tell(eloDebug, "Player running, try initialized TCP connection now");
+      init();
+   }
 
    if (key != kNone)
        osdThread->setActivity();
@@ -249,7 +284,9 @@ time_t cPluginSqueezebox::WakeupTime()
 cOsdObject* cPluginSqueezebox::MainMenuAction()
 {
    loglevel = cfg.logLevel;
-   cControl::Launch(new cSqueezeControl(this, ResourceDirectory()));
+
+   cSqueezeControl* control = new cSqueezeControl(this, ResourceDirectory());
+   cControl::Launch(control);
 
    return 0;
 }
