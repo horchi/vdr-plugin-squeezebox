@@ -16,8 +16,8 @@
 
 #include "lmccom.h"
 
-static const char *VERSION        = "0.0.10";
-static const char *DESCRIPTION    = "Squeezebox  - a client for the Logitech Media Server";
+static const char *VERSION        = "0.0.11";
+static const char *DESCRIPTION    = "Squeezebox - a client for the Logitech Media Server";
 static const char *MAINMENUENTRY  = "Squeezebox";
 
 //***************************************************************************
@@ -27,6 +27,12 @@ static const char *MAINMENUENTRY  = "Squeezebox";
 class cSqueezePlayer : public cPlayer, cThread 
 {
    public:
+
+//       enum ePlayModeExt 
+//       { 
+//          pmExternAudioOnly_THIS_SHOULD_BE_AVOIDED
+//          pmExternAudioOnlyBlack_THIS_SHOULD_BE_AVOIDED
+//       };
 
       cSqueezePlayer();
       virtual ~cSqueezePlayer();

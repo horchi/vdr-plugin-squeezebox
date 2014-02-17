@@ -73,6 +73,7 @@ class cSqueezeOsd : public cThread
       int drawButtons();
       int drawVolume(cPixmap* pixmap, int x, int y, int width);
       int drawMenu();
+      int scrollLyrics();
 
       int createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
                     tColor color, tColor blend, int radius);
@@ -113,7 +114,6 @@ class cSqueezeOsd : public cThread
 
       int buttonLevel;
       char* resDir;
-      int visible;
       int forceNextDraw;
       int forceMenuDraw;
       int forcePlaylistDraw;
@@ -122,7 +122,7 @@ class cSqueezeOsd : public cThread
       int plUserAction;
       int plTop;
       time_t lastScrollAt;
-      
+
       int plItems;
       int plItemSpace;
       int plItemHeight;
@@ -151,11 +151,19 @@ class cSqueezeOsd : public cThread
       cPixmap* pixmapMenuTitle[pmCount];
       cPixmap* pixmapMenu[pmCount];
       cPixmap* pixmapMenuCurrent[pmCount];
+      cPixmap* pixmapLyrics;
+
+      int lyricsScrollPos;
+      int lyricsDrawportHeight;
+      int lyricsScrollingAt;
+      uint64_t nextScrollStep;
+      char lastLyrics[200];
 
       cFont* fontStd;
       cFont* fontTilte;
       cFont* fontArtist;
       cFont* fontPl;
+      cFont* fontLyrics;
 
       tColor clrBox;
       tColor clrBoxBlend;

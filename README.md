@@ -116,7 +116,11 @@ Configuration:
     port of LMSs CLI interface (default 9090)
 
   - squeezebox.shadeTime
-    inactivity time to shade the OSD 0 for off (default 0)
+    inactivity time to shade the OSD for off (default 0)
+
+  - squeezebox.shadeLevel
+    shade level 0-100 in %, 100 is black (default 40)
+   
     
 Handling:
 ---------

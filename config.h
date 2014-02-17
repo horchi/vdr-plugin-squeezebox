@@ -5,6 +5,8 @@
  *
  */
 
+#include <vdr/menuitems.h>
+
 //***************************************************************************
 // 
 //***************************************************************************
@@ -19,15 +21,39 @@ class cSqueezeConfig
       // config data
 
       char* lmcHost;
-      unsigned short lmcPort;
-      unsigned short lmcHttpPort;
+      int lmcPort;
+      int lmcHttpPort;
 
       char* squeezeCmd;
       char* playerName;
       char* mac;
       char* audioDevice;
-      unsigned short logLevel;
-      time_t shadeTime;
+      int logLevel;
+      int shadeTime;
+      int shadeLevel;
 };
 
 extern cSqueezeConfig cfg;
+
+//***************************************************************************
+// Plugin Setup Menu
+//***************************************************************************
+
+class cMenuSqueezeSetup : public cMenuSetupPage 
+{
+   public:
+      
+      cMenuSqueezeSetup();
+      
+   protected:
+
+      virtual eOSState ProcessKey(eKeys Key);
+      virtual void Store();
+      virtual void Setup();
+
+      char lmcHost[256];
+      char squeezeCmd[256];
+      char playerName[20];
+      char audioDevice[30];
+      char mac[20];
+};

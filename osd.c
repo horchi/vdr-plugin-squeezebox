@@ -17,7 +17,6 @@
 #include "osd.h"
 #include "helpers.h"
 
-
 //***************************************************************************
 // Status Interface
 //***************************************************************************
@@ -46,7 +45,6 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    : cThread()
 {
    loopActive = no;
-   visible = no;
    forceNextDraw = yes;
    forceMenuDraw = no;
    forcePlaylistDraw = yes;
@@ -70,10 +68,17 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    menuItemHeight = 0;
    menuItemSpace = 5;
 
+   lyricsScrollPos = 0;
+   lyricsDrawportHeight = 0;
+   lyricsScrollingAt = time(0);
+   nextScrollStep = cTimeMs::Now();
+   *lastLyrics = 0;
+
    statusMonitor = new cMyStatus(this);
 
    osd = 0;
 
+   pixmapLyrics = 0;
    memset(pixmapCover, 0, sizeof(pixmapCover));
    memset(pixmapInfo, 0, sizeof(pixmapInfo));
    memset(pixmapPlaylist, 0, sizeof(pixmapPlaylist));
@@ -92,6 +97,7 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    fontTilte = 0;
    fontArtist = 0;
    fontPl = 0;
+   fontLyrics = 0;
 
    clrBox = 0xFF000040;
    clrBoxBlend = 0xFF0000AA;
@@ -142,12 +148,16 @@ cSqueezeOsd::~cSqueezeOsd()
       osd->DestroyPixmap(pixmapMenu[1]);
       osd->DestroyPixmap(pixmapMenuCurrent[0]);
       osd->DestroyPixmap(pixmapMenuCurrent[1]);
+
+      if (pixmapLyrics) osd->DestroyPixmap(pixmapLyrics);
    }
 
    delete fontTilte;
    delete fontArtist;
    delete fontStd;
    delete fontPl;
+   delete fontLyrics;
+
    delete lmc;
    delete statusMonitor;
 
@@ -168,7 +178,6 @@ void cSqueezeOsd::stop()
 
 void cSqueezeOsd::view()
 {
-   visible = yes;
    forceNextDraw = yes;
 }
 
@@ -209,6 +218,7 @@ int cSqueezeOsd::init()
       fontTilte = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 13.0);
       fontArtist = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 11.0);
       fontPl = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 7.0);
+      fontLyrics = cFont::CreateFont(vdrFont->FontName(), (vdrFont->Height() / 10.0) * 6.0);
 
       // draw black background
 
@@ -266,6 +276,33 @@ int cSqueezeOsd::init()
    }
 
    return done;
+}
+
+//***************************************************************************
+// Create Box
+//***************************************************************************
+
+int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
+                           tColor color, tColor blend, int radius)
+{
+   cPixmap::Lock();
+
+   // background pixmap
+
+   pixmap[pmBack] = osd->CreatePixmap(1, cRect(x, y, width, height));
+   pixmap[pmBack]->Fill(color);
+   DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, true);
+   DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, false);
+   DrawRoundedCorners(pixmap[pmBack], radius, 0, 0, width, height);
+
+   // front/text pixmap
+
+   pixmap[pmText] = osd->CreatePixmap(2, cRect(x+2*border, y+border, width-4*border, height-2*border));
+   pixmap[pmText]->Fill(clrTransparent);
+
+   cPixmap::Unlock();
+
+   return success;
 }
 
 //***************************************************************************
@@ -398,7 +435,6 @@ void cSqueezeOsd::Action()
 
    loopActive = yes;
    currentState = lmc->getPlayerState();   
-   visible = yes;
 
    lmc->update();
    lmc->startNotify();
@@ -427,13 +463,12 @@ void cSqueezeOsd::Action()
          forcePlaylistDraw = yes;
       }
 
-      // check for notification with 100ms timeout
+      // check for notification with 50ms timeout
 
-      changesPending = lmc->checkNotify(50) == success;
+      changesPending = lmc->checkNotify(0) == success;
       tell(eloDebug2, "looping %d ... (%d) (%d)", count++, changesPending, forceNextDraw);
 
-      if (!visible)
-         continue;
+      usleep(10000);   // #TODO use mutex wait condition instead
 
       // shade on inactivity
 
@@ -442,7 +477,7 @@ void cSqueezeOsd::Action()
          unsigned short lastAlpha = alpha;
          
          if (lastActivityAt + cfg.shadeTime < time(0))
-            alpha = 0x66;
+            alpha = (0xff / 100.0) * (100.0 - cfg.shadeLevel);
          else
             alpha = ALPHA_OPAQUE;
          
@@ -450,9 +485,24 @@ void cSqueezeOsd::Action()
             forceNextDraw = yes;
       }
 
+      // scroll lyrics
+
+      if (osd && cTimeMs::Now() >= nextScrollStep)
+      {
+         LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
+         
+         if (!isEmpty(currentTrack->lyrics))
+         {
+            scrollLyrics();
+            osd->Flush();  
+         }
+      }
+
       // check force
 
       fullDraw = forceNextDraw || changesPending;
+
+      // draw osd
 
       if (osd && (cTimeMs::Now() > lastDraw+1000 || fullDraw || forceMenuDraw || forcePlaylistDraw))
       {
@@ -462,6 +512,7 @@ void cSqueezeOsd::Action()
          }
          else if (forceMenuDraw && menu)
          {
+            drawCover();
             drawMenu();
             drawButtons();
          }
@@ -486,33 +537,6 @@ void cSqueezeOsd::Action()
    }
 
    lmc->stopNotify();
-}
-
-//***************************************************************************
-// Create Box
-//***************************************************************************
-
-int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
-                           tColor color, tColor blend, int radius)
-{
-   cPixmap::Lock();
-
-   // background pixmap
-
-   pixmap[pmBack] = osd->CreatePixmap(1, cRect(x, y, width, height));
-   pixmap[pmBack]->Fill(color);
-   DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, true);
-   DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, false);
-   DrawRoundedCorners(pixmap[pmBack], radius, 0, 0, width, height);
-
-   // front/text pixmap
-
-   pixmap[pmText] = osd->CreatePixmap(2, cRect(x+2*border, y+border, width-4*border, height-2*border));
-   pixmap[pmText]->Fill(clrTransparent);
-
-   cPixmap::Unlock();
-
-   return success;
 }
 
 //***************************************************************************
@@ -673,8 +697,10 @@ int cSqueezeOsd::drawInfoBox()
       y += fontStd->Height();
    }
 
-   pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
-                                clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taCenter | taTop);
+   if (currentTrack->duration)
+      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
+                                   clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taCenter | taTop);
+
    y += fontPl->Height();
    drawProgress(y);
 
@@ -742,6 +768,9 @@ int cSqueezeOsd::drawProgress(int y)
 
       cString begin = cString::sprintf("%s: %d:%02d", tr("Duration"), time/tmeSecondsPerMinute, time%tmeSecondsPerMinute);
       pixmapInfo[pmText]->DrawText(cPoint(0, yLast), begin, clrWhite, clrTransparent, fontStd); 
+
+      pixmapInfo[pmText]->DrawText(cPoint(0, yLast), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
+                                   clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taRight | taTop);
    }
 
    return done;
@@ -907,6 +936,8 @@ int cSqueezeOsd::drawVolume(cPixmap* pixmap, int x, int y, int width)
    int off = width - ((width / 100.0) * percent);
    int barHeight = fontPl->Height();
 
+   cPixmap::Lock();
+
    y = y + (pixmapSymbols[pmText]->ViewPort().Height() - 2*barHeight) / 2;
 
    pixmap->DrawText(cPoint(x, y), tr("Volume"), clrWhite, clrTransparent, 
@@ -919,6 +950,8 @@ int cSqueezeOsd::drawVolume(cPixmap* pixmap, int x, int y, int width)
    pixmap->DrawRectangle(cRect(x,   y,   width, barHeight), clrWhite);
    pixmap->DrawRectangle(cRect(x+1, y+1, width-2, barHeight-2), 0xFF303060);
    pixmap->DrawRectangle(cRect(x+3, y+3, width-off-6, barHeight-6), clrWhite);
+
+   cPixmap::Unlock();
 
    return done;
 }
@@ -979,8 +1012,7 @@ int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
    MemoryStruct cover;
    std::string hash;
 
-   if (!osd)
-      return done;
+   cPixmap::Lock();
 
    if (!isEmpty(track->artworkurl))
       hash = track->artworkurl;
@@ -1000,17 +1032,20 @@ int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
 
    if (!image)
    {
-      lmc->getCover(&cover, track);
-      
-      if (imgLoader->loadImage(cover.memory, cover.size) == success)
-      {
-         image = imgLoader->createImage(size, size, yes);
-         imgLoader->addCache(hash, image);
+      if (lmc->getCover(&cover, track) == success)
+      {      
+         if (imgLoader->loadImage(cover.memory, cover.size) == success)
+         {
+            image = imgLoader->createImage(size, size, yes);
+            imgLoader->addCache(hash, image);
+         }
       }
    }
 
    if (image)
       pixmap->DrawImage(cPoint(x, y), *image);
+
+   cPixmap::Unlock();
 
    return done;
 }
@@ -1023,75 +1058,148 @@ int cSqueezeOsd::drawCover()
 {
    MemoryStruct cover;
    LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
-   int y = 0;
+   std::string hash;
+   cImage* image = 0;
 
-   if (!osd)
-      return done;
+   int y = pixmapCover[pmText]->ViewPort().Height() / 6.0;
+   int imgHW = pixmapCover[pmText]->ViewPort().Height() / 6.0 * 4.0;
+
+   if (!isEmpty(currentTrack->lyrics) && !menu)
+   {
+      y = 10;
+      imgHW = pixmapCover[pmText]->ViewPort().Height() / 2;
+   }
+
+   if (!isEmpty(currentTrack->artworkurl))
+      hash = std::string("cover_") + currentTrack->artworkurl;
+   else if (!isEmpty(currentTrack->artworkTrackId))
+      hash = std::string("cover_") + currentTrack->artworkTrackId;
+   else 
+      hash = std::string("cover_") + num2Str(currentTrack->id).c_str();
+
+   cPixmap::Lock();
 
    pixmapMenuTitle[pmText]->SetAlpha(ALPHA_TRANSPARENT);
    pixmapMenu[pmText]->SetAlpha(ALPHA_TRANSPARENT);
-   pixmapCover[pmText]->Fill(clrTransparent);     // clear box
+   pixmapCover[pmText]->Fill(clrTransparent);        // clear box
 
-   // #TODO, add cover to cache
+   cPixmap::Unlock();
 
-   lmc->getCurrentCover(&cover, currentTrack);
+   // cleanup image cache
 
-   // optional store the cover on FS
-   // storeFile(&cover, "/tmp/squeeze_cover.jpg");
+   if (lmc->hasMetadataChanged())
+      imgLoader->clearCache();
 
-   if (imgLoader->loadImage(cover.memory, cover.size) == success)
+   // check cache
+
+   image = imgLoader->fromCache(hash);
+
+   if (!image)
    {
-      int imgHW = pixmapCover[pmText]->ViewPort().Height() / 6.0 * 4.0;
-      int x = 0;
-
-      y = pixmapCover[pmText]->ViewPort().Height() / 6.0;
-
-      if (!isEmpty(currentTrack->lyrics))
+      if (lmc->getCurrentCover(&cover, currentTrack) == success)
       {
-         y = 10;
-         imgHW = pixmapCover[pmText]->ViewPort().Height() / 2;
-      }
+         if (imgLoader->loadImage(cover.memory, cover.size) == success)
+         {
+            // optional store the cover on FS
+            // storeFile(&cover, "/tmp/squeeze_cover.jpg");
 
-      x = (pixmapCover[pmText]->ViewPort().Width() - imgHW) / 2;
-
-      cImage* image = imgLoader->createImage(imgHW, imgHW, yes);
-
-      if (image)
-      {
-         pixmapCover[pmText]->DrawImage(cPoint(x, y), *image);
-         y += border + imgHW;
-         delete image;
+            image = imgLoader->createImage(imgHW, imgHW, yes);
+            imgLoader->addCache(hash, image);
+         }
       }
    }
-   
+
+   cPixmap::Lock();
+
+   if (image)
+   {
+      int x = (pixmapCover[pmText]->ViewPort().Width() - imgHW) / 2;
+      
+      pixmapCover[pmText]->DrawImage(cPoint(x, y), *image);
+      y += imgHW;
+   }
+
+   // ------------------------------
    // lyrics
 
-   if (!isEmpty(currentTrack->lyrics))
+   if (pixmapLyrics && (menu || isEmpty(currentTrack->lyrics)))
    {
-      cTextWrapper tw(currentTrack->lyrics, fontPl, pixmapCover[pmText]->ViewPort().Width());
-      
+      pixmapLyrics->SetAlpha(ALPHA_TRANSPARENT);
+   }
+
+   else if (!isEmpty(currentTrack->lyrics) && !menu)
+   {
+      cTextWrapper tw(currentTrack->lyrics, fontLyrics, pixmapCover[pmText]->ViewPort().Width());
+
       int height = pixmapCover[pmText]->ViewPort().Height() - y;
-      int lineCount = height / fontPl->Height();
+      int width = pixmapCover[pmText]->ViewPort().Width();
+      int x = pixmapCover[pmText]->ViewPort().X();
 
-//       static cPixmap* pixmap = osd->CreatePixmap(1, cRect(x, y, width, height));
+      lyricsDrawportHeight = fontLyrics->Height() * tw.Lines();
 
-//       pixmap->Fill(clrTransparent);     // clear box
-      
-//       tell(0, "have %d lines, dispay max %d, height is %d, %d characters", 
-//            tw.Lines(), lineCount, height, strlen(currentTrack->lyrics));
-
-      for (int l = 0; l < lineCount && l < tw.Lines(); l++)
+      if (strncmp(lastLyrics, tw.GetLine(0), 200) != 0)
       {
-         pixmapCover[pmText]->DrawText(cPoint(0, y), tw.GetLine(l), 
-                                       clrWhite, clrTransparent, fontPl, 
-                                       pixmapCover[pmText]->ViewPort().Width());
+         lyricsScrollPos = 0;
+         snprintf(lastLyrics, 200,  "%s", tw.GetLine(0));
+
+         if (pixmapLyrics) { osd->DestroyPixmap(pixmapLyrics); pixmapLyrics = 0; }
          
-         y += fontPl->Height();
+         if (!pixmapLyrics)
+         {
+            pixmapLyrics = osd->CreatePixmap(1, cRect(x, y, width, height), cRect(0, 0, width, lyricsDrawportHeight));
+            pixmapLyrics->Fill(clrTransparent);
+         }
+         
+         int yl = 0;
+         
+         for (int l = 0; l < tw.Lines(); l++)
+         {
+            pixmapLyrics->DrawText(cPoint(0, yl), tw.GetLine(l), 
+                                   clrWhite, clrTransparent, fontLyrics, 
+                                   pixmapLyrics->ViewPort().Width());
+            
+            yl += fontLyrics->Height();
+         }
+
+         nextScrollStep = cTimeMs::Now() + 50;
+
+         // scrollLyrics();
       }
    }
 
    pixmapCover[pmBack]->SetAlpha(alpha);
    pixmapCover[pmText]->SetAlpha(alpha);
+
+   cPixmap::Unlock();
+
+   return success;
+}
+
+//***************************************************************************
+// Scroll Lyrics
+//***************************************************************************
+
+int cSqueezeOsd::scrollLyrics()
+{
+   if (menu || !pixmapLyrics || lyricsScrollingAt >= time(0))
+      return done;
+
+   if (lyricsScrollPos == 0)
+      lyricsScrollingAt = time(0) + 5;
+
+   cPixmap::Lock();
+   pixmapLyrics->SetDrawPortPoint(cPoint(0, lyricsScrollPos * -1));
+   pixmapLyrics->SetAlpha(alpha);
+   cPixmap::Unlock();
+
+   lyricsScrollPos++;
+   nextScrollStep = cTimeMs::Now() + 50;
+   
+   if (lyricsScrollPos > lyricsDrawportHeight - pixmapLyrics->ViewPort().Height())
+   {
+      lyricsScrollingAt = time(0) + 5;
+      lyricsScrollPos = 0;
+   }
 
    return success;
 }
@@ -1119,7 +1227,11 @@ int cSqueezeOsd::drawSymbol(cPixmap* pixmap, const char* name, int& x, int y,
    image = imgLoader->createImageFromFile(path, width, height, yes);
 
    if (image)
+   {
+      cPixmap::Lock();
       pixmap->DrawImage(cPoint(x, y), *image);
+      cPixmap::Unlock();
+   }
 
    free(path);
    delete image;
