@@ -2,7 +2,10 @@
 VDR Plugin 'squeezebox' Revision History
 ----------------------------------------
 
-2014-02-06: Version 0.0.11
+2014-02-18: Version 0.0.12
+  - added: delete of player instance on plugin exit
+
+2014-02-17: Version 0.0.11
   - added  Setup menu
   - added  auto scroll for lyrics 
   - added  shadeLevel (0-100) to config

@@ -63,6 +63,8 @@ cSqueezeControl::~cSqueezeControl()
    // lmc->save();
 
    free(resDir);
+
+   delete player;
    delete lmc;
    delete osdThread;
 }

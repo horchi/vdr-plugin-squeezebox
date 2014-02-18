@@ -16,7 +16,7 @@
 
 #include "lmccom.h"
 
-static const char *VERSION        = "0.0.11";
+static const char *VERSION        = "0.0.12";
 static const char *DESCRIPTION    = "Squeezebox - a client for the Logitech Media Server";
 static const char *MAINMENUENTRY  = "Squeezebox";
 
