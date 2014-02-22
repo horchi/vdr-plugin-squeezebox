@@ -24,6 +24,8 @@ cSqueezeConfig::cSqueezeConfig()
    squeezeCmd = strdup("/usr/local/bin/squeezelite");
    playerName = strdup("VDR-squeeze");
    audioDevice = strdup("");
+   alsaOptions = strdup("");
+
    shadeTime = 0;
    shadeLevel = 40;  // in %
 
@@ -37,6 +39,7 @@ cSqueezeConfig::~cSqueezeConfig()
    free(squeezeCmd);
    free(playerName);
    free(audioDevice);
+   free(alsaOptions);
 }
 
 //***************************************************************************
@@ -49,6 +52,7 @@ cMenuSqueezeSetup::cMenuSqueezeSetup()
    strcpy(squeezeCmd, cfg.squeezeCmd);
    strcpy(playerName, cfg.playerName);
    strcpy(audioDevice, cfg.audioDevice);
+   strcpy(alsaOptions, cfg.alsaOptions);
    strcpy(mac, cfg.mac);
    
    Setup();
@@ -66,6 +70,7 @@ void cMenuSqueezeSetup::Setup()
    Add(new cMenuEditStrItem(tr("Player MAC"), mac, sizeof(mac), tr(FileNameChars)));
    Add(new cMenuEditStrItem(tr("Squeezelite Path"), squeezeCmd, sizeof(squeezeCmd), tr(FileNameChars)));
    Add(new cMenuEditStrItem(tr("Audio Device"), audioDevice, sizeof(audioDevice), tr(FileNameChars)));
+   Add(new cMenuEditStrItem(tr("Alsa Options"), alsaOptions, sizeof(alsaOptions), tr(FileNameChars)));
 
    Add(new cMenuEditIntItem(tr("Shade Time [s]"), &cfg.shadeTime, 0, 3600));
    Add(new cMenuEditIntItem(tr("Shade Level [%]"), &cfg.shadeLevel, 0, 100));
@@ -108,6 +113,7 @@ void cMenuSqueezeSetup::Store(void)
    free(cfg.playerName);  cfg.playerName = strdup(playerName);  
    free(cfg.mac);         cfg.mac = strdup(mac);   
    free(cfg.audioDevice); cfg.audioDevice = strdup(audioDevice); 
+   free(cfg.alsaOptions); cfg.alsaOptions = strdup(alsaOptions); 
 
    SetupStore("logLevel", cfg.lmcHost);
    SetupStore("lmcHost", cfg.lmcHost);
@@ -119,4 +125,5 @@ void cMenuSqueezeSetup::Store(void)
    SetupStore("playerName", cfg.playerName);
    SetupStore("playerMac", cfg.mac);
    SetupStore("audioDevice", cfg.audioDevice);
+   SetupStore("alsaOptions", cfg.alsaOptions);
 }

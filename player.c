@@ -88,6 +88,9 @@ int cSqueezePlayer::startPlayer()
    
    if (pid == 0)     // child code
    {
+      char* argv[30];
+      int argc = 0;
+
       dup2(fd[1], STDERR_FILENO);   // Redirect stderr into writing end of pipe
       dup2(fd[1], STDOUT_FILENO);   // Redirect stdout into writing end of pipe
       dup2(wrfd[0], STDIN_FILENO);  // Redirect reading end of pipe into stdin
@@ -100,12 +103,40 @@ int cSqueezePlayer::startPlayer()
       close(wrfd[0]);
       close(wrfd[1]);
       
-      if (!isEmpty(cfg.audioDevice))
-         execl(cfg.squeezeCmd, cfg.squeezeCmd, "-s", cfg.lmcHost, "-m", cfg.mac, "-n", cfg.playerName, "-o", cfg.audioDevice, NULL);
-      else
-         execl(cfg.squeezeCmd, cfg.squeezeCmd, "-s", cfg.lmcHost, "-m", cfg.mac, "-n", cfg.playerName, NULL);
+      // create argument array
+
+      argv[argc++] = strdup(cfg.squeezeCmd);
+      argv[argc++] = strdup("-s");
+      argv[argc++] = strdup(cfg.lmcHost);
+      argv[argc++] = strdup("-m"); 
+      argv[argc++] = strdup(cfg.mac);
+      argv[argc++] = strdup("-n");
+      argv[argc++] = strdup(cfg.playerName);
+
+      if (!isEmpty(cfg.alsaOptions))
+      {
+         argv[argc++] = strdup("-o");
+         argv[argc++] = strdup(cfg.audioDevice);
+      }
+
+      if (!isEmpty(cfg.alsaOptions))
+      {
+         argv[argc++] = strdup("-a");
+         argv[argc++] = strdup(cfg.alsaOptions);
+      }
+      
+      argv[argc] = 0;
+      
+      // start player ..
+
+      execv(cfg.squeezeCmd, argv);
 
       tell(eloAlways, "Process squeezelite ended unexpectedly, reason was '%s'\n", strerror(errno));
+
+      // cleanup ..
+
+      for (int i = 0; i < argc; i++)
+         free(argv[i]);
 
       return -1;
    }

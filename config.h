@@ -28,6 +28,8 @@ class cSqueezeConfig
       char* playerName;
       char* mac;
       char* audioDevice;
+      char* alsaOptions;
+
       int logLevel;
       int shadeTime;
       int shadeLevel;
@@ -55,5 +57,6 @@ class cMenuSqueezeSetup : public cMenuSetupPage
       char squeezeCmd[256];
       char playerName[20];
       char audioDevice[30];
+      char alsaOptions[30];
       char mac[20];
 };

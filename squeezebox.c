@@ -311,6 +311,7 @@ bool cPluginSqueezebox::SetupParse(const char* Name, const char* Value)
    else if (!strcasecmp(Name, "playerName"))   { free(cfg.playerName);  cfg.playerName = strdup(Value); }
    else if (!strcasecmp(Name, "playerMac"))    { free(cfg.mac);         cfg.mac = strdup(Value); }
    else if (!strcasecmp(Name, "audioDevice"))  { free(cfg.audioDevice); cfg.audioDevice = strdup(Value); }
+   else if (!strcasecmp(Name, "alsaOptions"))  { free(cfg.alsaOptions); cfg.alsaOptions = strdup(Value); }
    
    else
       return false;
