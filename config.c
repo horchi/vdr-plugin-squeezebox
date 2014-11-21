@@ -115,7 +115,7 @@ void cMenuSqueezeSetup::Store(void)
    free(cfg.audioDevice); cfg.audioDevice = strdup(audioDevice); 
    free(cfg.alsaOptions); cfg.alsaOptions = strdup(alsaOptions); 
 
-   SetupStore("logLevel", cfg.lmcHost);
+   SetupStore("logLevel", cfg.logLevel);
    SetupStore("lmcHost", cfg.lmcHost);
    SetupStore("lmcPort", cfg.lmcPort);
    SetupStore("lmcHttpPort", cfg.lmcHttpPort);

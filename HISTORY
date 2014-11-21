@@ -3,7 +3,8 @@ VDR Plugin 'squeezebox' Revision History
 ----------------------------------------
 
 2014-02-22: Version 0.0.13
-  - added: also options to configuration
+  - added: alsa options to configuration
+  - bugfix: storage of log level (by alexander grothe)
 
 2014-02-18: Version 0.0.12
   - added: delete of player instance on plugin exit

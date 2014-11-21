@@ -30,7 +30,7 @@ class cSqueezeOsd : public cThread
          pmCount
       };
 
-      cSqueezeOsd(const char* aResDir);
+      cSqueezeOsd(const char* aResDir = "");
       virtual ~cSqueezeOsd();
 
       void view();

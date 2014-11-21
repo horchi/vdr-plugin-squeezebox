@@ -22,7 +22,7 @@ class cSqueezeControl : public cControl
 {
    public:
 
-      cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aResDir);
+      cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aResDir = "");
       virtual ~cSqueezeControl();
 
       virtual int init();
@@ -119,7 +119,9 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
       }
 
       tell(eloDebug, "Player running, try initialized TCP connection now");
-      init();
+
+      if (init() != success)
+         return state;
    }
 
    if (key != kNone)

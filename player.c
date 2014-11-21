@@ -113,7 +113,7 @@ int cSqueezePlayer::startPlayer()
       argv[argc++] = strdup("-n");
       argv[argc++] = strdup(cfg.playerName);
 
-      if (!isEmpty(cfg.alsaOptions))
+      if (!isEmpty(cfg.audioDevice))
       {
          argv[argc++] = strdup("-o");
          argv[argc++] = strdup(cfg.audioDevice);
