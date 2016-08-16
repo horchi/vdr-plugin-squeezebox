@@ -1,7 +1,25 @@
+/* 
+ * -----------------------------------
+ * squeezebox Plugin - Revision History
+ * -----------------------------------
+ *
+ */
 
-VDR Plugin 'squeezebox' Revision History
-----------------------------------------
+#define _VERSION     "0.0.14"
+#define VERSION_DATE "16.08.2016"
 
+#ifdef GIT_REV
+#  define VERSION _VERSION "-GIT" GIT_REV
+#else
+#  define VERSION _VERSION
+#endif
+
+/*
+ * ------------------------------------
+
+2016-08-16: Version 0.0.14
+  - bugfix: fixed crash on faild osd init
+  
 2014-02-22: Version 0.0.13
   - added: alsa options to configuration
   - bugfix: storage of log level (by alexander grothe)
@@ -64,3 +82,6 @@ VDR Plugin 'squeezebox' Revision History
 
 2014-01-02: Version 0.0.1
   - Initial revision.
+
+ * ------------------------------------
+ */

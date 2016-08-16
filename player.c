@@ -60,7 +60,7 @@ int cSqueezePlayer::startPlayer()
 {
    int status;
    FILE* out;
-   char buf[1024];
+   char buf[1024] = "";
    int fd[2];
    int wrfd[2];
    int res = 0;
@@ -88,7 +88,7 @@ int cSqueezePlayer::startPlayer()
    
    if (pid == 0)     // child code
    {
-      char* argv[30];
+      char* argv[30] = 0;
       int argc = 0;
 
       dup2(fd[1], STDERR_FILENO);   // Redirect stderr into writing end of pipe
@@ -128,7 +128,14 @@ int cSqueezePlayer::startPlayer()
       argv[argc] = 0;
       
       // start player ..
+      
+      std::string tmp;
 
+      for (int i = 0; i < argc; i++)
+         tmp += " " + std::string(argv[i]);
+
+      tell(eloAlways, "Starting player with '%s", tmp.c_str());
+ 
       execv(cfg.squeezeCmd, argv);
 
       tell(eloAlways, "Process squeezelite ended unexpectedly, reason was '%s'\n", strerror(errno));

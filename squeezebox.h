@@ -14,9 +14,9 @@
 #include <vdr/thread.h>
 #include <vdr/remote.h>
 
+#include "HISTORY.h"
 #include "lmccom.h"
 
-static const char *VERSION        = "0.0.13";
 static const char *DESCRIPTION    = "Squeezebox - a client for the Logitech Media Server";
 static const char *MAINMENUENTRY  = "Squeezebox";
 

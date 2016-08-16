@@ -7,16 +7,23 @@
 # This name will be used in the '-P...' option of VDR to load the plugin.
 # By default the main source file also carries this name.
 
-PLUGIN = squeezebox
-
-DEBUG = 1
+PLUGIN   = squeezebox
+HISTFILE = "HISTORY.h"
+DEBUG    = 1
 
 # External image lib to use: imagemagick, graphicsmagick
 IMAGELIB = imagemagick
 
 ### The version number of this plugin (taken from the main source file):
 
-VERSION = $(shell grep 'static const char \*VERSION *=' $(PLUGIN).h | awk '{ print $$6 }' | sed -e 's/[";]//g')
+#VERSION = $(shell grep 'static const char \*VERSION *=' $(PLUGIN).h | awk '{ print $$6 }' | sed -e 's/[";]//g')
+VERSION = $(shell grep 'define _VERSION ' $(HISTFILE) | awk '{ print $$3 }' | sed -e 's/[";]//g')
+
+LASTHIST    = $(shell grep '^20[0-3][0-9]' $(HISTFILE) | head -1)
+LASTCOMMENT = $(subst |,\n,$(shell sed -n '/$(LASTHIST)/,/^ *$$/p' $(HISTFILE) | tr '\n' '|'))
+LASTTAG     = $(shell git describe --tags --abbrev=0)
+BRANCH      = $(shell git rev-parse --abbrev-ref HEAD)
+GIT_REV = $(shell git describe --always 2>/dev/null)
 
 ### The directory environment:
 
@@ -82,6 +89,10 @@ DEFINES += -DVDR_PLUGIN -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
 
 OBJS = $(PLUGIN).o lmccom.o osd.o menu.o config.o player.o helpers.o \
      lmctag.o imgtools.o lib/common.o lib/tcpchannel.o lib/curl.o
+
+ifdef GIT_REV
+   DEFINES += -DGIT_REV='"$(GIT_REV)"'
+endif
 
 ### The main target:
 
@@ -156,3 +167,41 @@ clean:
 
 tt: test.c lmccom.c lib/tcpchannel.c lib/common.c
 	$(CXX) $(CXXFLAGS) test.c lmctag.c lmccom.c lib/tcpchannel.c lib/common.c lib/curl.c $(LIBS) -o tt
+
+cppchk:
+	cppcheck --template="{file}:{line}:{severity}:{message}" --quiet --force *.c *.h 
+
+# ------------------------------------------------------
+# Git / Versioning / Tagging
+# ------------------------------------------------------
+
+vcheck:
+	git fetch
+	if test "$(LASTTAG)" = "$(VERSION)"; then \
+		echo "Warning: tag/version '$(VERSION)' already exists, update HISTORY first. Aborting!"; \
+		exit 1; \
+	fi
+
+push: vcheck
+	echo "tagging git with $(VERSION)"
+	git tag $(VERSION)
+	git push --tags
+	git push
+
+commit: vcheck
+	git commit -m "$(LASTCOMMENT)" -a
+
+git: commit push
+
+showv:
+	@echo "Git ($(BRANCH)):\\n  Version: $(LASTTAG) (tag)"
+	@echo "Local:"
+	@echo "  Version: $(VERSION)"
+	@echo "  Change:"
+	@echo -n "   $(LASTCOMMENT)"
+
+update:
+	git pull
+	@make clean install
+	restart vdr
+

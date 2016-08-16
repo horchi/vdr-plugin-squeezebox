@@ -227,7 +227,7 @@ class LmcCom : public TcpChannel
       int loadPlaylist(const char* playlist)
       { 
          char par[500];
-         Parameters pars;
+         Parameters pars();
 
          pars.push_back("cmd:load");
          sprintf(par, "playlist_name:%s", playlist);
@@ -239,7 +239,7 @@ class LmcCom : public TcpChannel
       int appendPlaylist(const char* playlist)
       { 
          char par[500];
-         Parameters pars;
+         Parameters pars();
 
          pars.push_back("cmd:add");
          sprintf(par, "playlist_name:%s", playlist);

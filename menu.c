@@ -151,13 +151,13 @@ cSubMenu::cSubMenu(cMenuBase* aParent, const char* title, LmcCom* aLmc,
 
       if (parent)
       {
-         char flt[500]; *flt = 0;
+         char flt[500+TB] = "";
 
          filters.clear();
 
          if (toIdTag(queryType) != LmcTag::tUnknown)   // tIsAudio !!!
          {
-            sprintf(flt, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
+            snprintf(flt, 500, "%s:%s", LmcTag::toName(toIdTag(queryType)), item->getItem()->id.c_str());
             filters.push_back(flt);
          }
 
