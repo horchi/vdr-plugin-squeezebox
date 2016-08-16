@@ -5,7 +5,7 @@
  *
  */
 
-#define _VERSION     "0.0.14"
+#define _VERSION     "0.0.15"
 #define VERSION_DATE "16.08.2016"
 
 #ifdef GIT_REV
@@ -16,6 +16,9 @@
 
 /*
  * ------------------------------------
+
+2016-08-16: Version 0.0.15
+  - bugfix: fixed minor cppcheck arnings
 
 2016-08-16: Version 0.0.14
   - bugfix: fixed crash on faild osd init

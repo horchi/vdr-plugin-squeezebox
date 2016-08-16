@@ -151,7 +151,7 @@ cSubMenu::cSubMenu(cMenuBase* aParent, const char* title, LmcCom* aLmc,
 
       if (parent)
       {
-         char flt[500+TB] = "";
+         char flt[500+TB];
 
          filters.clear();
 

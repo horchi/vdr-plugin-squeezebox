@@ -126,7 +126,7 @@ int main(int argc, char** argv)
       int status;
       LmcCom::RangeList list;
       char* result = 0;
-      char cmd[200+TB] = "";
+      char cmd[200+TB];
       LmcTag lt(lmc);
       int tag;
       const int maxValue = 200;
