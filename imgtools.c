@@ -45,7 +45,7 @@ cImage* cImageMagickWrapper::createImage(int width, int height, bool preserveAsp
 
    if (w != width || h != height) 
    {
-      ImageScaler scaler();
+      ImageScaler scaler;
       scaler.SetImageParameters(imgData, width, width, height, w, h);
 
       for (const void *pixels_end = &pixels[w*h]; pixels < pixels_end; ++pixels)

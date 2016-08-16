@@ -86,7 +86,7 @@ int LmcCom::update(int stateOnly)
    char cmd[100];
    int status = success;
    int count = 0;
-   TrackInfo t();
+   TrackInfo t;
    int track = no;
    char* buf = 0;
 
@@ -437,7 +437,7 @@ int LmcCom::execute(const char* command, int par)
 
 int LmcCom::request(const char* command, const char* par)
 {
-   Parameters pars();
+   Parameters pars;
 
    pars.push_back(par);
 

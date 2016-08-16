@@ -88,7 +88,7 @@ int cSqueezePlayer::startPlayer()
    
    if (pid == 0)     // child code
    {
-      char* argv[30] = 0;
+      char* argv[30];
       int argc = 0;
 
       dup2(fd[1], STDERR_FILENO);   // Redirect stderr into writing end of pipe

@@ -119,10 +119,10 @@ int Minimum(int a, int b, int c, int d, int e, int f) {
 std::string CutText(std::string text, int width, const cFont *font) {
     if (width <= font->Size())
         return text.c_str();
-    cTextWrapper twText();
+    cTextWrapper twText;
     twText.Set(text.c_str(), font, width);
     std::string cuttedTextNative = twText.GetLine(0);
-    std::stringstream sstrText();
+    std::stringstream sstrText;
     sstrText << cuttedTextNative << "...";
     std::string cuttedText = sstrText.str();
     int actWidth = font->Width(cuttedText.c_str());
@@ -134,7 +134,7 @@ std::string CutText(std::string text, int width, const cFont *font) {
         int cutChars = overlap / charWidth;
         if (cutChars > 0) {
             cuttedTextNative = cuttedTextNative.substr(0, cuttedTextNative.length() - cutChars);
-            std::stringstream sstrText2();
+            std::stringstream sstrText2;
             sstrText2 << cuttedTextNative << "...";
             cuttedText = sstrText2.str();
         }

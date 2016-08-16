@@ -702,7 +702,7 @@ int cSqueezeOsd::drawInfoBox()
    }
    else
    {
-      char tmp[10] = 0;
+      char tmp[10];
 
       pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("Genre: %s", 
                                                                   currentTrack->genre),
