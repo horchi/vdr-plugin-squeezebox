@@ -85,7 +85,7 @@ int cSqueezeControl::init()
 
    if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
    {
-      tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed", 
+      tell(eloAlways, "Error: Opening connection to LMC server at '%s:%d' failed", 
            cfg.lmcHost, cfg.lmcPort);
 
       return fail;
@@ -95,8 +95,14 @@ int cSqueezeControl::init()
         cfg.lmcHost, cfg.lmcPort);
 
    osdThread = new cSqueezeOsd(resDir);
-   osdThread->Start();
 
+   if (osdThread->init() != success)
+   {
+      tell(eloAlways, "Error: Initialize of OSD failed");
+      return fail;
+   }
+   
+   osdThread->Start();
    initialized = yes;
 
    return success;
@@ -118,7 +124,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
          return state;
       }
 
-      tell(eloDebug, "Player running, try initialized TCP connection now");
+      tell(eloDebug, "Player running, try initialized TCP connection and OSD now");
 
       if (init() != success)
          return state;

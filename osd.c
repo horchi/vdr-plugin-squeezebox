@@ -111,58 +111,18 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
       tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed", 
            cfg.lmcHost, cfg.lmcPort);
    }
-
-   init();
 }
 
 cSqueezeOsd::~cSqueezeOsd()
 {
    stop();
+   exit();
 
-   if (osd)
-   {
-      osd->DestroyPixmap(pixmapCover[0]);
-      osd->DestroyPixmap(pixmapCover[1]);
-      osd->DestroyPixmap(pixmapInfo[0]);
-      osd->DestroyPixmap(pixmapInfo[1]);
-      osd->DestroyPixmap(pixmapPlaylist[0]);
-      osd->DestroyPixmap(pixmapPlaylist[1]);
-      osd->DestroyPixmap(pixmapPlCurrent[0]);
-      osd->DestroyPixmap(pixmapPlCurrent[1]);
-      osd->DestroyPixmap(pixmapStatus[0]);
-      osd->DestroyPixmap(pixmapStatus[1]);
-      osd->DestroyPixmap(pixmapSymbols[0]);
-      osd->DestroyPixmap(pixmapSymbols[1]);
-      osd->DestroyPixmap(pixmapBtnRed[0]);
-      osd->DestroyPixmap(pixmapBtnRed[1]);
-      osd->DestroyPixmap(pixmapBtnGreen[0]);
-      osd->DestroyPixmap(pixmapBtnGreen[1]);
-      osd->DestroyPixmap(pixmapBtnYellow[0]);
-      osd->DestroyPixmap(pixmapBtnYellow[1]);
-      osd->DestroyPixmap(pixmapBtnBlue[0]);
-      osd->DestroyPixmap(pixmapBtnBlue[1]);
-
-      osd->DestroyPixmap(pixmapMenuTitle[0]);
-      osd->DestroyPixmap(pixmapMenuTitle[1]);
-      osd->DestroyPixmap(pixmapMenu[0]);
-      osd->DestroyPixmap(pixmapMenu[1]);
-      osd->DestroyPixmap(pixmapMenuCurrent[0]);
-      osd->DestroyPixmap(pixmapMenuCurrent[1]);
-
-      if (pixmapLyrics) osd->DestroyPixmap(pixmapLyrics);
-   }
-
-   delete fontTilte;
-   delete fontArtist;
-   delete fontStd;
-   delete fontPl;
-   delete fontLyrics;
-
-   delete lmc;
    delete statusMonitor;
-
+   delete lmc;
+   delete imgLoader;
    delete osd;
-
+   
    free(resDir);
 }
 
@@ -273,8 +233,9 @@ int cSqueezeOsd::init()
       btnX += btnWidth + border;
       res += createBox(pixmapBtnBlue, btnX, stY, btnWidth, stHeight, clrBox, clrBoxBlend, 10);
 
-      res += createBox(pixmapSymbols, border, pixmapBtnRed[pmBack]->ViewPort().Y() - 2*border - symbolBoxHeight, 
-                       coverAreaWidth, symbolBoxHeight, clrBox, clrBoxBlend, 15);
+      if (!res)
+         res += createBox(pixmapSymbols, border, pixmapBtnRed[pmBack]->ViewPort().Y() - 2*border - symbolBoxHeight, 
+                          coverAreaWidth, symbolBoxHeight, clrBox, clrBoxBlend, 15);
    }
 
    if (res != success && osd)
@@ -284,6 +245,50 @@ int cSqueezeOsd::init()
    }
    
    return res;
+}
+
+int cSqueezeOsd::exit()
+{
+   if (osd)
+   {
+      osd->DestroyPixmap(pixmapCover[0]);
+      osd->DestroyPixmap(pixmapCover[1]);
+      osd->DestroyPixmap(pixmapInfo[0]);
+      osd->DestroyPixmap(pixmapInfo[1]);
+      osd->DestroyPixmap(pixmapPlaylist[0]);
+      osd->DestroyPixmap(pixmapPlaylist[1]);
+      osd->DestroyPixmap(pixmapPlCurrent[0]);
+      osd->DestroyPixmap(pixmapPlCurrent[1]);
+      osd->DestroyPixmap(pixmapStatus[0]);
+      osd->DestroyPixmap(pixmapStatus[1]);
+      osd->DestroyPixmap(pixmapSymbols[0]);
+      osd->DestroyPixmap(pixmapSymbols[1]);
+      osd->DestroyPixmap(pixmapBtnRed[0]);
+      osd->DestroyPixmap(pixmapBtnRed[1]);
+      osd->DestroyPixmap(pixmapBtnGreen[0]);
+      osd->DestroyPixmap(pixmapBtnGreen[1]);
+      osd->DestroyPixmap(pixmapBtnYellow[0]);
+      osd->DestroyPixmap(pixmapBtnYellow[1]);
+      osd->DestroyPixmap(pixmapBtnBlue[0]);
+      osd->DestroyPixmap(pixmapBtnBlue[1]);
+
+      osd->DestroyPixmap(pixmapMenuTitle[0]);
+      osd->DestroyPixmap(pixmapMenuTitle[1]);
+      osd->DestroyPixmap(pixmapMenu[0]);
+      osd->DestroyPixmap(pixmapMenu[1]);
+      osd->DestroyPixmap(pixmapMenuCurrent[0]);
+      osd->DestroyPixmap(pixmapMenuCurrent[1]);
+
+      if (pixmapLyrics) osd->DestroyPixmap(pixmapLyrics);
+   }
+
+   delete fontTilte;  fontTilte = 0;
+   delete fontArtist; fontArtist = 0;
+   delete fontStd;    fontStd = 0;
+   delete fontPl;     fontPl = 0;
+   delete fontLyrics; fontLyrics = 0;
+
+   return done;
 }
 
 //***************************************************************************

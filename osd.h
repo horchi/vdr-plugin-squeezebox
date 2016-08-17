@@ -33,6 +33,9 @@ class cSqueezeOsd : public cThread
       cSqueezeOsd(const char* aResDir = "");
       virtual ~cSqueezeOsd();
 
+      int init();
+      int exit();
+   
       void view();
       void hide();
       void Action();
@@ -59,8 +62,6 @@ class cSqueezeOsd : public cThread
       void setActivity() { lastActivityAt = time(0); }
 
    protected:
-
-      int init();
 
       int drawOsd();
       int drawCover();
