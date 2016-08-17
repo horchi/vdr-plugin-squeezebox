@@ -306,7 +306,10 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
    // background pixmap
 
    if (!(pixmap[pmBack] = osd->CreatePixmap(1, cRect(x, y, width, height))))
+   {
+      cPixmap::Unlock();  
       return fail;
+   }
    
    pixmap[pmBack]->Fill(color);
    DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, true);

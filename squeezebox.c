@@ -75,9 +75,7 @@ cSqueezeControl::~cSqueezeControl()
 
 int cSqueezeControl::init()
 {
-   delete lmc;       lmc = 0;
-   delete osdThread; osdThread = 0;
-
+   delete lmc;
    lmc = new LmcCom(cfg.mac);
 
    tell(eloAlways, "Trying connetion to '%s:%d', my mac is '%s'", 
@@ -98,6 +96,8 @@ int cSqueezeControl::init()
 
    if (osdThread->init() != success)
    {
+      delete osdThread;
+      osdThread = 0;
       tell(eloAlways, "Error: Initialize of OSD failed");
       return fail;
    }
