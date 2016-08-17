@@ -5,7 +5,7 @@
  *
  */
 
-#define _VERSION     "0.0.16"
+#define _VERSION     "0.0.17"
 #define VERSION_DATE "17.08.2016"
 
 #ifdef GIT_REV
@@ -16,6 +16,9 @@
 
 /*
  * ------------------------------------
+
+2016-08-17: Version 0.0.17
+  - change: added pause to recover loop
 
 2016-08-17: Version 0.0.16
   - bugfix: improved error handling on osd trouble

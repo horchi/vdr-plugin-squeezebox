@@ -114,10 +114,27 @@ int cSqueezeControl::init()
 
 eOSState cSqueezeControl::ProcessKey(eKeys key)
 {
+   static int lastRetryAt = 0;
    eOSState state = osContinue;
 
+   if (key == kBack)
+   {
+      tell(eloAlways, "Stopping player");
+      if (osdThread) osdThread->hide();
+      if (player)    player->Stop();
+      cControl::Shutdown();
+      return osEnd;
+   }
+
+   // need init?
+   
    if (!initialized)
    {
+      if (lastRetryAt+30 > time(0))
+         return state;
+
+      lastRetryAt = time(0);
+      
       if (!player->isRunning())
       {
          tell(eloAlways, "Still waiting on player");
@@ -146,16 +163,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
    }
 
    switch ((int)key)   // cast to avoid warnings
-   {       
-      case kBack:
-      {
-         tell(eloAlways, "Stopping player");
-         osdThread->hide();
-         player->Stop();
-         cControl::Shutdown();
-         return osEnd;
-      }
-
+   {
       case kStop:     lmc->stop();       break;
       case kPlayPause:
       case kPause:    lmc->pausePlay();  break;
