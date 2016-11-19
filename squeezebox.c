@@ -18,7 +18,7 @@ cSqueezeConfig cfg;
 // Squeeze Control
 //***************************************************************************
 
-class cSqueezeControl : public cControl 
+class cSqueezeControl : public cControl
 {
    public:
 
@@ -50,8 +50,8 @@ cSqueezeControl::cSqueezeControl(cPluginSqueezebox* aPlugin, const char* aResDir
    : cControl(player = new cSqueezePlayer)
 {
    plugin = aPlugin;
-  
-   buttonLevel = 0; 
+
+   buttonLevel = 0;
    resDir = strdup(aResDir);
    lmc = 0;
    osdThread = 0;
@@ -78,18 +78,18 @@ int cSqueezeControl::init()
    delete lmc;
    lmc = new LmcCom(cfg.mac);
 
-   tell(eloAlways, "Trying connetion to '%s:%d', my mac is '%s'", 
+   tell(eloAlways, "Trying connetion to '%s:%d', my mac is '%s'",
         cfg.lmcHost, cfg.lmcPort, cfg.mac);
 
    if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
    {
-      tell(eloAlways, "Error: Opening connection to LMC server at '%s:%d' failed", 
+      tell(eloAlways, "Error: Opening connection to LMC server at '%s:%d' failed",
            cfg.lmcHost, cfg.lmcPort);
 
       return fail;
    }
 
-   tell(eloAlways, "Connection to LMC server at '%s:%d' established", 
+   tell(eloAlways, "Connection to LMC server at '%s:%d' established",
         cfg.lmcHost, cfg.lmcPort);
 
    osdThread = new cSqueezeOsd(resDir);
@@ -101,7 +101,7 @@ int cSqueezeControl::init()
       tell(eloAlways, "Error: Initialize of OSD failed");
       return fail;
    }
-   
+
    osdThread->Start();
    initialized = yes;
 
@@ -127,14 +127,14 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
    }
 
    // need init?
-   
+
    if (!initialized)
    {
-      if (lastRetryAt+30 > time(0))
+      if (lastRetryAt+4 > time(0))
          return state;
 
       lastRetryAt = time(0);
-      
+
       if (!player->isRunning())
       {
          tell(eloAlways, "Still waiting on player");
@@ -188,7 +188,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
          osdThread->setButtonLevel(buttonLevel);
          break;
       }
-      
+
       case kRed:
       {
          if (buttonLevel == 0)
@@ -243,7 +243,7 @@ eOSState cSqueezeControl::ProcessKey(eKeys key)
 }
 
 //***************************************************************************
-// - PLUGIN - 
+// - PLUGIN -
 //***************************************************************************
 //***************************************************************************
 // Squeezebox Plugin
@@ -321,17 +321,17 @@ bool cPluginSqueezebox::SetupParse(const char* Name, const char* Value)
    else if (!strcasecmp(Name, "lmcHttpPort"))  cfg.lmcHttpPort = atoi(Value);
    else if (!strcasecmp(Name, "shadeTime"))    cfg.shadeTime = atoi(Value);
    else if (!strcasecmp(Name, "shadeLevel"))   cfg.shadeLevel = atoi(Value);
-   
+
    else if (!strcasecmp(Name, "lmcHost"))      { free(cfg.lmcHost);     cfg.lmcHost = strdup(Value); }
    else if (!strcasecmp(Name, "squeezeCmd"))   { free(cfg.squeezeCmd);  cfg.squeezeCmd = strdup(Value); }
    else if (!strcasecmp(Name, "playerName"))   { free(cfg.playerName);  cfg.playerName = strdup(Value); }
    else if (!strcasecmp(Name, "playerMac"))    { free(cfg.mac);         cfg.mac = strdup(Value); }
    else if (!strcasecmp(Name, "audioDevice"))  { free(cfg.audioDevice); cfg.audioDevice = strdup(Value); }
    else if (!strcasecmp(Name, "alsaOptions"))  { free(cfg.alsaOptions); cfg.alsaOptions = strdup(Value); }
-   
+
    else
       return false;
-   
+
    return true;
 }
 

@@ -28,15 +28,15 @@ class cMyStatus : public cStatus
       cMyStatus(cSqueezeOsd* o) : cStatus()  { osd = o; }
 
    protected:
-      
+
       virtual void OsdClear(void)                       { osd->setForce(); }
       virtual void SetVolume(int Volume, bool Absolute) { osd->setForce(); }
-      
+
    private:
-      
+
       cSqueezeOsd* osd;
 };
-   
+
 //***************************************************************************
 // Squeeze Osd
 //***************************************************************************
@@ -105,10 +105,10 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
 
    lmc = new LmcCom(cfg.mac);
    imgLoader = new cImageMagickWrapper();
-   
+
    if (lmc->open(cfg.lmcHost, cfg.lmcPort) != success)
    {
-      tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed", 
+      tell(eloAlways, "Opening connection to LMC server at '%s:%d' failed",
            cfg.lmcHost, cfg.lmcPort);
    }
 }
@@ -122,7 +122,7 @@ cSqueezeOsd::~cSqueezeOsd()
    delete lmc;
    delete imgLoader;
    delete osd;
-   
+
    free(resDir);
 }
 
@@ -153,7 +153,7 @@ void cSqueezeOsd::hide()
 int cSqueezeOsd::init()
 {
    int res = success;
-   
+
    if (!osd)
    {
       int width = (cOsd::OsdWidth() - 3 * border) / 2;
@@ -212,7 +212,7 @@ int cSqueezeOsd::init()
       menuItemHeight = fontStd->Height() + menuItemSpace;        // recalc
       visibleMenuItems = (menuHeight-2*border) / menuItemHeight;
 
-      tell(eloDebug, "calculated %d items with a space of %d, hight is %d", 
+      tell(eloDebug, "calculated %d items with a space of %d, hight is %d",
            plItems, plItemSpace, (plHeight-2*border));
 
       res += createBox(pixmapCover, border, border, coverAreaWidth, coverAreaHeight, clrBlack, clrWhite, 15);
@@ -234,7 +234,7 @@ int cSqueezeOsd::init()
       res += createBox(pixmapBtnBlue, btnX, stY, btnWidth, stHeight, clrBox, clrBoxBlend, 10);
 
       if (!res)
-         res += createBox(pixmapSymbols, border, pixmapBtnRed[pmBack]->ViewPort().Y() - 2*border - symbolBoxHeight, 
+         res += createBox(pixmapSymbols, border, pixmapBtnRed[pmBack]->ViewPort().Y() - 2*border - symbolBoxHeight,
                           coverAreaWidth, symbolBoxHeight, clrBox, clrBoxBlend, 15);
    }
 
@@ -243,7 +243,7 @@ int cSqueezeOsd::init()
       delete osd;
       osd = 0;
    }
-   
+
    return res;
 }
 
@@ -295,22 +295,22 @@ int cSqueezeOsd::exit()
 // Create Box
 //***************************************************************************
 
-int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
+int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int height,
                            tColor color, tColor blend, int radius)
 {
    if (!osd)
       return fail;
-   
+
    cPixmap::Lock();
 
    // background pixmap
 
    if (!(pixmap[pmBack] = osd->CreatePixmap(1, cRect(x, y, width, height))))
    {
-      cPixmap::Unlock();  
+      cPixmap::Unlock();
       return fail;
    }
-   
+
    pixmap[pmBack]->Fill(color);
    DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, true);
    DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, false);
@@ -320,7 +320,7 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
 
    if (!(pixmap[pmText] = osd->CreatePixmap(2, cRect(x+2*border, y+border, width-4*border, height-2*border))))
       return fail;
-   
+
    pixmap[pmText]->Fill(clrTransparent);
 
    cPixmap::Unlock();
@@ -429,7 +429,7 @@ int cSqueezeOsd::ProcessKey(int key)
          return done;
       }
 
-      case kOk: 
+      case kOk:
       {
          if (plCurrent > na && plCurrent < lmc->getTrackCount())
          {
@@ -457,7 +457,7 @@ void cSqueezeOsd::Action()
    uint64_t lastDraw = 0;
 
    loopActive = yes;
-   currentState = lmc->getPlayerState();   
+   currentState = lmc->getPlayerState();
 
    lmc->update();
    lmc->startNotify();
@@ -498,12 +498,12 @@ void cSqueezeOsd::Action()
       if (cfg.shadeTime > 0)
       {
          unsigned short lastAlpha = alpha;
-         
+
          if (lastActivityAt + cfg.shadeTime < time(0))
             alpha = (0xff / 100.0) * (100.0 - cfg.shadeLevel);
          else
             alpha = ALPHA_OPAQUE;
-         
+
          if (alpha != lastAlpha)
             forceNextDraw = yes;
       }
@@ -513,11 +513,11 @@ void cSqueezeOsd::Action()
       if (osd && cTimeMs::Now() >= nextScrollStep)
       {
          LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
-         
+
          if (!isEmpty(currentTrack->lyrics))
          {
             scrollLyrics();
-            osd->Flush();  
+            osd->Flush();
          }
       }
 
@@ -555,7 +555,7 @@ void cSqueezeOsd::Action()
          forceMenuDraw = no;
          lastDraw = cTimeMs::Now();
 
-         osd->Flush();  
+         osd->Flush();
       }
    }
 
@@ -642,8 +642,8 @@ int cSqueezeOsd::drawMenu()
       {
          int ay = pixmapMenu[pmBack]->ViewPort().Y() + y + border;
 
-         pixmapMenuCurrent[pmBack]->SetViewPort(cRect(pixmapMenuCurrent[pmBack]->ViewPort().X(), ay, 
-                                                      pixmapMenuCurrent[pmBack]->ViewPort().Width(), 
+         pixmapMenuCurrent[pmBack]->SetViewPort(cRect(pixmapMenuCurrent[pmBack]->ViewPort().X(), ay,
+                                                      pixmapMenuCurrent[pmBack]->ViewPort().Width(),
                                                       pixmapMenuCurrent[pmBack]->ViewPort().Height()));
       }
 
@@ -653,8 +653,8 @@ int cSqueezeOsd::drawMenu()
 
       y += menuItemHeight;
    }
-   
-   // 
+
+   //
 
    pixmapMenuTitle[pmBack]->SetAlpha(alpha);
    pixmapMenuTitle[pmText]->SetAlpha(alpha);
@@ -687,7 +687,7 @@ int cSqueezeOsd::drawInfoBox()
    pixmapInfo[pmText]->Fill(clrTransparent);     // clear box
 
    cTextWrapper tw(currentTrack->title, fontTilte, pixmapInfo[pmText]->ViewPort().Width());
-   
+
    for (int l = 0; l < 2; l++)
    {
       if (l < tw.Lines())
@@ -712,7 +712,7 @@ int cSqueezeOsd::drawInfoBox()
    {
       char tmp[10];
 
-      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("Genre: %s", 
+      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("Genre: %s",
                                                                   currentTrack->genre),
                                    clrWhite, clrTransparent, fontStd, pixmapInfo[pmText]->ViewPort().Width());
       y += fontStd->Height();
@@ -724,7 +724,7 @@ int cSqueezeOsd::drawInfoBox()
    }
 
    if (currentTrack->duration)
-      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
+      pixmapInfo[pmText]->DrawText(cPoint(x, y), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount),
                                    clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
    y += fontPl->Height();
@@ -767,35 +767,35 @@ int cSqueezeOsd::drawProgress(int y)
    {
       int total = currentTrack->duration;
       int remaining = total - time;
-      
+
       cString begin = cString::sprintf("%d:%02d", time/tmeSecondsPerMinute, time%tmeSecondsPerMinute);
       cString end = cString::sprintf("-%d:%02d", remaining/tmeSecondsPerMinute, remaining%tmeSecondsPerMinute);
-      
+
       int barX = fontStd->Width(begin) + 10;
       int barWidth = rect.Width() - barX - fontStd->Width(end) - 20;
-      
+
       double percent = time / (total / 100.0);
       int off = barWidth - ((barWidth / 100.0) * percent);
 
-      // progress time / remaining time 
+      // progress time / remaining time
 
       pixmapInfo[pmText]->DrawText(cPoint(0, yLast), begin, clrWhite, clrTransparent, fontStd);
       pixmapInfo[pmText]->DrawText(cPoint(barX+barWidth+10, yLast), end, clrWhite, clrTransparent, fontStd);
-      
+
       // progess bar
-      
+
       pixmapInfo[pmText]->DrawRectangle(cRect(barX,   yLast,   barWidth, barHeight), clrWhite);
       pixmapInfo[pmText]->DrawRectangle(cRect(barX+1, yLast+1, barWidth-2, barHeight-2), 0xFF303060);
       pixmapInfo[pmText]->DrawRectangle(cRect(barX+3, yLast+3, barWidth-off-6, barHeight-6), clrWhite);
    }
    else
    {
-      // progress time 
+      // progress time
 
       cString begin = cString::sprintf("%s: %d:%02d", tr("Duration"), time/tmeSecondsPerMinute, time%tmeSecondsPerMinute);
-      pixmapInfo[pmText]->DrawText(cPoint(0, yLast), begin, clrWhite, clrTransparent, fontStd); 
+      pixmapInfo[pmText]->DrawText(cPoint(0, yLast), begin, clrWhite, clrTransparent, fontStd);
 
-      pixmapInfo[pmText]->DrawText(cPoint(0, yLast), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount), 
+      pixmapInfo[pmText]->DrawText(cPoint(0, yLast), cString::sprintf("(%d / %d)", currentState->plIndex+1, currentState->plCount),
                                    clrTextDark, clrTransparent, fontPl, pixmapInfo[pmText]->ViewPort().Width(), 0, taRight | taTop);
    }
 
@@ -849,8 +849,8 @@ int cSqueezeOsd::drawPlaylist()
       {
          int ay = pixmapPlaylist[pmBack]->ViewPort().Y() + y;
 
-         pixmapPlCurrent[pmBack]->SetViewPort(cRect(pixmapPlCurrent[pmBack]->ViewPort().X(), ay, 
-                                                    pixmapPlCurrent[pmBack]->ViewPort().Width(), 
+         pixmapPlCurrent[pmBack]->SetViewPort(cRect(pixmapPlCurrent[pmBack]->ViewPort().X(), ay,
+                                                    pixmapPlCurrent[pmBack]->ViewPort().Width(),
                                                     pixmapPlCurrent[pmBack]->ViewPort().Height()));
       }
 
@@ -870,7 +870,7 @@ int cSqueezeOsd::drawPlaylist()
       y += fontPl->Height();
 
       pixmapPlaylist[pmText]->DrawText(cPoint(x, y),
-                               cString::sprintf("%s", lmc->getTrack(i)->artist), 
+                               cString::sprintf("%s", lmc->getTrack(i)->artist),
                                color, clrTransparent, fontPl, pixmapPlaylist[pmText]->ViewPort().Width());
 
       y += fontPl->Height()+plItemSpace;
@@ -911,12 +911,12 @@ int cSqueezeOsd::drawStatus()
    int x = pixmapStatus[pmText]->ViewPort().Width() - fontStd->Width(date);
    int y = (pixmapStatus[pmText]->ViewPort().Height()-fontStd->Height()) / 2;
 
-   pixmapStatus[pmText]->DrawText(cPoint(x, y), date, 
-                                  clrWhite, clrTransparent, fontStd, 
+   pixmapStatus[pmText]->DrawText(cPoint(x, y), date,
+                                  clrWhite, clrTransparent, fontStd,
                                   pixmapStatus[pmText]->ViewPort().Width());
 
-   pixmapStatus[pmText]->DrawText(cPoint(0, y), currentState->plName, 
-                                  clrWhite, clrTransparent, fontStd, 
+   pixmapStatus[pmText]->DrawText(cPoint(0, y), currentState->plName,
+                                  clrWhite, clrTransparent, fontStd,
                                   pixmapStatus[pmText]->ViewPort().Width());
 
 
@@ -936,7 +936,7 @@ int cSqueezeOsd::drawStatus()
       drawSymbol(pixmapSymbols[pmText], name, x, 0);
       free(name);
    }
-   
+
    x += 2 * border;
    asprintf(&name, "shuffle%d.png", currentState->plShuffle);
    drawSymbol(pixmapSymbols[pmText], name, x, 0);
@@ -975,7 +975,7 @@ int cSqueezeOsd::drawVolume(cPixmap* pixmap, int x, int y, int width)
 
    y = y + (pixmapSymbols[pmText]->ViewPort().Height() - 2*barHeight) / 2;
 
-   pixmap->DrawText(cPoint(x, y), tr("Volume"), clrWhite, clrTransparent, 
+   pixmap->DrawText(cPoint(x, y), tr("Volume"), clrWhite, clrTransparent,
                     fontPl, width, 0, taTop|taCenter);
 
    y += fontPl->Height();
@@ -1007,22 +1007,22 @@ int cSqueezeOsd::drawButtons()
    pixmapBtnRed[pmText]->Fill(clrTransparent);
    pixmapBtnGreen[pmText]->Fill(clrTransparent);
    pixmapBtnYellow[pmText]->Fill(clrTransparent);
-   pixmapBtnBlue[pmText]->Fill(clrTransparent);  
+   pixmapBtnBlue[pmText]->Fill(clrTransparent);
 
    pixmapBtnRed[pmText]->DrawText(cPoint(0, 0), Red(),
-                                  clrWhite, clrTransparent, fontStd, 
+                                  clrWhite, clrTransparent, fontStd,
                                   pixmapBtnRed[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), Green(), 
-                                    clrWhite, clrTransparent, fontStd, 
+   pixmapBtnGreen[pmText]->DrawText(cPoint(0, 0), Green(),
+                                    clrWhite, clrTransparent, fontStd,
                                     pixmapBtnGreen[pmText]->ViewPort().Width(), 0, taCenter | taTop);
-   
+
    pixmapBtnYellow[pmText]->DrawText(cPoint(0, 0), Yellow(),
-                                     clrWhite, clrTransparent, fontStd, 
+                                     clrWhite, clrTransparent, fontStd,
                                      pixmapBtnYellow[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
-   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), Blue(), 
-                                   clrWhite, clrTransparent, fontStd, 
+   pixmapBtnBlue[pmText]->DrawText(cPoint(0, 0), Blue(),
+                                   clrWhite, clrTransparent, fontStd,
                                    pixmapBtnBlue[pmText]->ViewPort().Width(), 0, taCenter | taTop);
 
    pixmapBtnRed[pmBack]->SetAlpha(alpha);
@@ -1043,7 +1043,7 @@ int cSqueezeOsd::drawButtons()
 // Draw Cover
 //***************************************************************************
 
-int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track, 
+int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
                                 int x, int y, int size)
 {
    cImage* image = 0;
@@ -1059,7 +1059,7 @@ int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
       hash = track->artworkurl;
    else if (!isEmpty(track->artworkTrackId))
       hash = track->artworkTrackId;
-   else 
+   else
       hash = num2Str(track->id).c_str();
 
    // clear cache on metadata change
@@ -1074,7 +1074,7 @@ int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
    if (!image)
    {
       if (lmc->getCover(&cover, track) == success)
-      {      
+      {
          if (imgLoader->loadImage(cover.memory, cover.size) == success)
          {
             image = imgLoader->createImage(size, size, yes);
@@ -1118,7 +1118,7 @@ int cSqueezeOsd::drawCover()
       hash = std::string("cover_") + currentTrack->artworkurl;
    else if (!isEmpty(currentTrack->artworkTrackId))
       hash = std::string("cover_") + currentTrack->artworkTrackId;
-   else 
+   else
       hash = std::string("cover_") + num2Str(currentTrack->id).c_str();
 
    cPixmap::Lock();
@@ -1158,7 +1158,7 @@ int cSqueezeOsd::drawCover()
    if (image)
    {
       int x = (pixmapCover[pmText]->ViewPort().Width() - imgHW) / 2;
-      
+
       pixmapCover[pmText]->DrawImage(cPoint(x, y), *image);
       y += imgHW;
    }
@@ -1187,21 +1187,21 @@ int cSqueezeOsd::drawCover()
          snprintf(lastLyrics, 200,  "%s", tw.GetLine(0));
 
          if (pixmapLyrics) { osd->DestroyPixmap(pixmapLyrics); pixmapLyrics = 0; }
-         
+
          if (!pixmapLyrics)
          {
             pixmapLyrics = osd->CreatePixmap(1, cRect(x, y, width, height), cRect(0, 0, width, lyricsDrawportHeight));
             pixmapLyrics->Fill(clrTransparent);
          }
-         
+
          int yl = 0;
-         
+
          for (int l = 0; l < tw.Lines(); l++)
          {
-            pixmapLyrics->DrawText(cPoint(0, yl), tw.GetLine(l), 
-                                   clrWhite, clrTransparent, fontLyrics, 
+            pixmapLyrics->DrawText(cPoint(0, yl), tw.GetLine(l),
+                                   clrWhite, clrTransparent, fontLyrics,
                                    pixmapLyrics->ViewPort().Width());
-            
+
             yl += fontLyrics->Height();
          }
 
@@ -1241,7 +1241,7 @@ int cSqueezeOsd::scrollLyrics()
 
    lyricsScrollPos++;
    nextScrollStep = cTimeMs::Now() + 50;
-   
+
    if (lyricsScrollPos > lyricsDrawportHeight - pixmapLyrics->ViewPort().Height())
    {
       lyricsScrollingAt = time(0) + 5;
@@ -1255,7 +1255,7 @@ int cSqueezeOsd::scrollLyrics()
 // Draw Symbol
 //***************************************************************************
 
-int cSqueezeOsd::drawSymbol(cPixmap* pixmap, const char* name, int& x, int y, 
+int cSqueezeOsd::drawSymbol(cPixmap* pixmap, const char* name, int& x, int y,
                             int width, int height)
 {
    char* path = 0;

@@ -44,9 +44,9 @@ LmcCom::LmcCom(const char* aMac)
 }
 
 LmcCom::~LmcCom()
-{ 
+{
    if (notify) stopNotify();
-      
+
    curl_easy_cleanup(curl);
    close();
    free(host);
@@ -139,7 +139,7 @@ int LmcCom::update(int stateOnly)
          case LmcTag::tPlaylistRepeat:   playerState.plRepeat = atoi(value);   break;
          case LmcTag::tMode:             snprintf(playerState.mode, sizeof(playerState.mode), "%s", value);     break;
          case LmcTag::tPlaylistName:     snprintf(playerState.plName, sizeof(playerState.plName), "%s", value); break;
-            
+
          // playlist tags ...
 
          case LmcTag::tPlaylistIndex:
@@ -150,19 +150,19 @@ int LmcCom::update(int stateOnly)
                tracks.push_back(t);
                memset(&t, 0, sizeof(t));
             }
-            
+
             track = yes;
             t.index = atoi(value);
             break;
          }
-         
+
          case LmcTag::tId:             t.id = atoi(value);                                          break;
          case LmcTag::tYear:           t.year = atoi(value);                                        break;
          case LmcTag::tTitle:          snprintf(t.title, sizeof(t.title), "%s", value);             break;
          case LmcTag::tArtist:         snprintf(t.artist, sizeof(t.artist), "%s", value);           break;
          case LmcTag::tGenre:          snprintf(t.genre, sizeof(t.genre), "%s", value);             break;
-         case LmcTag::tTrackDuration:  t.duration = atoi(value);                                    break;  
-         case LmcTag::tArtworkTrackId: snprintf(t.artworkTrackId, sizeof(t.artworkTrackId), "%s", value); break; 
+         case LmcTag::tTrackDuration:  t.duration = atoi(value);                                    break;
+         case LmcTag::tArtworkTrackId: snprintf(t.artworkTrackId, sizeof(t.artworkTrackId), "%s", value); break;
          case LmcTag::tArtworkUrl:     snprintf(t.artworkurl, sizeof(t.artworkurl), "%s", value);   break;
          case LmcTag::tAlbum:          snprintf(t.album, sizeof(t.album), "%s", value);             break;
          case LmcTag::tRemoteTitle:    snprintf(t.remoteTitle, sizeof(t.remoteTitle), "%s", value); break;
@@ -172,7 +172,7 @@ int LmcCom::update(int stateOnly)
          case LmcTag::tBitrate:        t.bitrate = atoi(value);                                     break;
 
          // case LmcTag::tUrl:         snprintf(t.url, sizeof(t.url), "%s", url);                   break;
-      } 
+      }
    }
 
    free(value);
@@ -235,7 +235,7 @@ int LmcCom::queryInt(const char* command, int& value)
 // Query Range
 //***************************************************************************
 
-int LmcCom::queryRange(RangeQueryType queryType, int from, int count, 
+int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
                        RangeList* list, int& total, const char* special, Parameters* pars)
 {
    LmcLock;
@@ -266,16 +266,16 @@ int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
 
       case rqtRadioApps: sprintf(query, "%s items", special); break;
 
-      case rqtYears:     
-         sprintf(query, "years");     
-         firstTag = LmcTag::tYear; 
+      case rqtYears:
+         sprintf(query, "years");
+         firstTag = LmcTag::tYear;
          break;
 
-      case rqtRadios:    
-         sprintf(query, "radios");    
+      case rqtRadios:
+         sprintf(query, "radios");
          firstTag = LmcTag::tIcon;
          break;
-     
+
       default: break;
    }
 
@@ -296,7 +296,7 @@ int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
       return status;
    }
 
-   lt.set(result);   
+   lt.set(result);
    tell(eloDebug, "Got [%s]", unescape(result));
    free(result); result = 0;
 
@@ -391,7 +391,7 @@ int LmcCom::queryRange(RangeQueryType queryType, int from, int count,
    }
 
    // #TODO list->sort();
-   
+
    return success;
 }
 
@@ -427,7 +427,7 @@ int LmcCom::execute(const char* command, int par)
    char str[10];
 
    sprintf(str, "%d", par);
-   
+
    return execute(command, str);
 }
 
@@ -467,7 +467,7 @@ int LmcCom::request(const char* command, Parameters* pars)
          free(p);
       }
    }
-   
+
    tell(eloDebug, "Requesting '%s' with '%s'", lastCommand, lastPar.c_str());
    flush();
 
@@ -500,14 +500,14 @@ int LmcCom::responseP(char*& result)
    if (look(30000) == success && (buf = readln()))
    {
       char* p = buf + strlen(escId) +1;
-      
+
       if ((p = strstr(p, lastCommand)) && strlen(p) >= strlen(lastCommand))
       {
          p += strlen(lastCommand);
 
          while (*p && *p == ' ')         // skip leading blanks
             p++;
-         
+
          if (strcmp(p, "?") != 0)
             result = strdup(p);
 
@@ -518,13 +518,13 @@ int LmcCom::responseP(char*& result)
       }
       else
       {
-         tell(eloAlways, "Got unexpected answer for '%s' [%s]", 
+         tell(eloAlways, "Got unexpected answer for '%s' [%s]",
               lastCommand, buf);
-         
+
          status = fail;
       }
    }
-      
+
    free(buf);
 
    return status;
@@ -549,29 +549,29 @@ int LmcCom::response(char* result, int max)
    if (look(30000) == success && (buf = readln()))
    {
       char* p = buf + strlen(escId) +1;
-      
+
       if ((p = strstr(p, lastCommand)) && strlen(p) >= strlen(lastCommand))
       {
          p += strlen(lastCommand);
 
          while (*p && *p == ' ')         // skip leading blanks
             p++;
-         
+
          if (result && max && strcmp(p,"?") != 0)
             sprintf(result, "%.*s", max, p);
-         
+
          if (loglevel >= eloDebug)
             tell(eloDebug2, "<- (response %d bytes) [%s]", strlen(buf), unescape(p));
       }
       else
       {
-         tell(eloAlways, "Got unexpected answer for '%s' [%s]", 
+         tell(eloAlways, "Got unexpected answer for '%s' [%s]",
               lastCommand, buf);
-         
+
          status = fail;
       }
    }
-      
+
    free(buf);
 
    return status;
@@ -587,7 +587,7 @@ char* LmcCom::unescape(char* buf)
    char* res;
 
    res = curl_easy_unescape(curl , buf, strlen(buf), &len);
-   
+
    if (res)
       strcpy(buf, res);
 
@@ -601,7 +601,7 @@ char* LmcCom::escape(const char* buf)
    char* res;
 
    res = curl_easy_escape(curl , buf, strlen(buf));
-   
+
    return res;
 }
 
@@ -661,9 +661,9 @@ int LmcCom::checkNotify(uint64_t timeout)
          buf[strlen(buf)-1] = 0;   // cut LF
 
          unescape(buf);
-       
+
          tell(eloDebug, "<- [%s]", buf);
-         
+
          if (strstr(buf, "playlist "))
             status = success;
          else if (strstr(buf, "pause ") || strstr(buf, "server"))
@@ -693,23 +693,23 @@ int LmcCom::getCurrentCover(MemoryStruct* cover, TrackInfo* track)
 
    if (track && !isEmpty(track->artworkurl))
    {
-      asprintf(&url, "http://%s:%d/%s", 
+      asprintf(&url, "http://%s:%d/%s",
                host, 9000, track->artworkurl);
-      
+
       status = downloadFile(url, cover);
-      
+
       free(url);
    }
 
    if (status != success)
    {
       // http://localhost:9000/music/current/cover.jpg?player=f0:4d:a2:33:b7:ed
-      
-      asprintf(&url, "http://%s:%d/music/current/cover.jpg?player=%s", 
+
+      asprintf(&url, "http://%s:%d/music/current/cover.jpg?player=%s",
                host, 9000, escId);
-      
+
       status = downloadFile(url, cover);
-      
+
       free(url);
    }
 
@@ -727,7 +727,7 @@ int LmcCom::getCover(MemoryStruct* cover, TrackInfo* track)
 
    if (track && !isEmpty(track->artworkurl))
    {
-      asprintf(&url, "http://%s:%d/%s", host, 9000, track->artworkurl);      
+      asprintf(&url, "http://%s:%d/%s", host, 9000, track->artworkurl);
       status = downloadFile(url, cover);
       free(url);
    }
@@ -735,12 +735,12 @@ int LmcCom::getCover(MemoryStruct* cover, TrackInfo* track)
    if (status != success)
    {
       // http://<server>:<port>/music/<track_id>/cover.jpg
-      
+
       if (isEmpty(track->artworkTrackId))
          asprintf(&url, "http://%s:%d/music/%d/cover.jpg", host, 9000, track->id);
       else
          asprintf(&url, "http://%s:%d/music/%s/cover.jpg", host, 9000, track->artworkTrackId);
-      
+
       status = downloadFile(url, cover);
       free(url);
    }

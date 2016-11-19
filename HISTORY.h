@@ -1,12 +1,12 @@
-/* 
+/*
  * -----------------------------------
  * squeezebox Plugin - Revision History
  * -----------------------------------
  *
  */
 
-#define _VERSION     "0.0.17"
-#define VERSION_DATE "17.08.2016"
+#define _VERSION     "0.0.18"
+#define VERSION_DATE "18.11.2016"
 
 #ifdef GIT_REV
 #  define VERSION _VERSION "-GIT" GIT_REV
@@ -16,6 +16,9 @@
 
 /*
  * ------------------------------------
+
+2016-11-18: Version 0.0.18
+  - change: adjust of player recover
 
 2016-08-17: Version 0.0.17
   - change: added pause to recover loop
@@ -28,7 +31,7 @@
 
 2016-08-16: Version 0.0.14
   - bugfix: fixed crash on faild osd init
-  
+
 2014-02-22: Version 0.0.13
   - added: alsa options to configuration
   - bugfix: storage of log level (by alexander grothe)
@@ -38,12 +41,12 @@
 
 2014-02-17: Version 0.0.11
   - added  Setup menu
-  - added  auto scroll for lyrics 
+  - added  auto scroll for lyrics
   - added  shadeLevel (0-100) to config
 
 2014-02-02: Version 0.0.10
   - change  fixed spacing below cover box
-  - change  added lyrics 
+  - change  added lyrics
   - bugfix  waiting on player startup
 
 2014-01-30: Version 0.0.9
