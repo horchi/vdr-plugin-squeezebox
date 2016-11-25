@@ -34,10 +34,10 @@ void showUsage(const char* name)
 // Sognal Handler
 //***************************************************************************
 
-void downF(int signal)     
-{ 
-   tell(0, "Shutdown triggered with signal %d", signal); 
-   doShutdown = yes; 
+void downF(int signal)
+{
+   tell(0, "Shutdown triggered with signal %d", signal);
+   doShutdown = yes;
 }
 
 void showTags(char* buf)
@@ -92,10 +92,10 @@ int main(int argc, char** argv)
          case 'p': if (argv[i+1]) lmcPort = atoi(argv[++i]);  break;
          case 'c': if (argv[i+1]) command = argv[++i];        break;
          case 'P': if (argv[i+1]) parameter = argv[++i];      break;
-         case 'e': 
+         case 'e':
             showTags(lmc->unescape(strdup(argv[i+1])));
             goto EXIT;
-         default: 
+         default:
          {
             showUsage(argv[0]);
             return 0;
@@ -131,7 +131,7 @@ int main(int argc, char** argv)
       int tag;
       const int maxValue = 200;
       char value[maxValue+TB];
-      LmcCom::Parameters params();
+      LmcCom::Parameters params;
 
       if (!isEmpty(parameter))
          params.push_back(parameter);
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
 
       status = lmc->request(cmd, &params);
       status += lmc->write("\n");
-      
+
       if ((status += lmc->responseP(result)) != success || isEmpty(result))
       {
          free(result);
@@ -154,7 +154,7 @@ int main(int argc, char** argv)
 
       while (lt.getNext(tag, value, maxValue) != LmcTag::wrnEndOfPacket)
          tell(0, "'%s' - '%s'", LmcTag::toName(tag), value);
-      
+
       goto EXIT;
    }
 
@@ -179,7 +179,7 @@ int main(int argc, char** argv)
 
    tell(0, "--------------------------");
    tell(0, "Connection to LMC server version '%s' at '%s:%d' established", player->version, lmcHost, lmcPort);
-   tell(0, "Player: mode %s; volume %d; muted %s, currend track index %d", 
+   tell(0, "Player: mode %s; volume %d; muted %s, currend track index %d",
         player->mode, player->volume, player->muted ? "yes" : "no", player->plIndex);
 
    track = lmc->getCurrentTrack();
@@ -194,7 +194,7 @@ int main(int argc, char** argv)
       tell(0, "Interpret: %s", track->artist);
       tell(0, "Genre: %s", track->genre);
       tell(0, "Dauer: %d:%02d", track->duration / tmeSecondsPerMinute, track->duration % tmeSecondsPerMinute);
-      tell(0, "Progress: %d:%02d ... -%d:%02d", 
+      tell(0, "Progress: %d:%02d ... -%d:%02d",
            time / tmeSecondsPerMinute, time % tmeSecondsPerMinute,
            remaining / tmeSecondsPerMinute, remaining % tmeSecondsPerMinute);
    }
@@ -210,10 +210,10 @@ int main(int argc, char** argv)
    if (lmc->queryRange(LmcCom::rqtGenres, 0, 100,  &list, total) == success)
    {
       LmcCom::RangeList::iterator it;
-      
+
       for (it = list.begin(); it != list.end(); ++it)
          tell(0, "  '%s'", (*it).content.c_str());
-      
+
       if (total > 100)
          tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
    }
@@ -224,10 +224,10 @@ int main(int argc, char** argv)
    if (lmc->queryRange(LmcCom::rqtRadios, 0, 100,  &list, total) == success)
    {
       LmcCom::RangeList::iterator it;
-      
+
       for (it = list.begin(); it != list.end(); ++it)
          tell(0, "  '%s' - '%s'", (*it).content.c_str(), (*it).command.c_str());
-      
+
       if (total > 100)
          tell(eloAlways, "Warning: [%s] %d more, only 100 supported", "genres", total-100);
    }
@@ -244,15 +244,15 @@ int main(int argc, char** argv)
       tell(0, "--------------------------");
       // lmc->updateTrackList();
       tell(0, "Playlist: '%s'", player->plName);
-      
+
       for (int i = 0; i < lmc->getTrackCount(); i++)
          tell(0, "  (%d) '%s' - '%s'", i,
               lmc->getTrack(i)->artist, lmc->getTrack(i)->title);
    }
-   
+
   EXIT:
 
-   // close connection 
+   // close connection
 
    tell(0, "Stopping notification, closing LMC connection");
 

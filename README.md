@@ -32,25 +32,25 @@ Installation:
 -------------
 
 1. Plugin
-  
+
   #> git clone https://github.com/horchi/vdr-plugin-squeezebox
   #> cd vdr-plugin-squeezebox
   #> make
   #> make install
 
-  may be you have to fix the access rights of <plugin-conf-path>/squeezebox 
+  may be you have to fix the access rights of <plugin-conf-path>/squeezebox
 
 
 2. softhddevice Patch
 
-  The squeezebox plugin need a deblocked sound device, a blacked video 
-  but avalible OSD output by the output device plugin. Exactly as I understand 
+  The squeezebox plugin need a deblocked sound device, a blacked video
+  but avalible OSD output by the output device plugin. Exactly as I understand
   the play mode 'ePlayMode = pmAudioOnlyBlack' (audio only from player, no video (black screen)).
 
   I use the softhddevice plugin in version 0.6.1rc1 as output plugin, to enable the pmAudioOnlyBlack support in the softhddevice
-  the patch softhddevice-pmAudioOnly.patch (deliverd with the squeezebox plugin) is needed! 
+  the patch softhddevice-pmAudioOnly.patch (deliverd with the squeezebox plugin) is needed!
   Therefore you habe to apply this patch and recompile softhddevice. Johns like to adopt the patch in one of the next versions.
-  
+
   I don't know the behavior of pmAudioOnlyBlack relating to other output plugins like xine ...
 
 
@@ -89,15 +89,15 @@ Configuration:
 
   And adjust the parameters to fit your system:
 
-  - squeezebox.audioDevice  
+  - squeezebox.audioDevice
      The possible setting of audioDevice are shown by calling:
      #> squeezelite -l
      normally similar to the softhddevice configuration (squeezelite option)
-   
+
   - squeezebox.logLevel
      the loglevel (0-4), 0 less, 1 normal, 2.. debug (default 1)
 
-  - squeezebox.playerName 
+  - squeezebox.playerName
      name of the squeezebox as displayed in the WEBIF (squeezelite option, default 'VDR-squeeze')
 
   - squeezebox.playerMac
@@ -120,8 +120,8 @@ Configuration:
 
   - squeezebox.shadeLevel
     shade level 0-100 in %, 100 is black (default 40)
-   
-    
+
+
 Handling:
 ---------
 

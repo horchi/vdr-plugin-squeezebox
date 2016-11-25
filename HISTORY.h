@@ -5,8 +5,8 @@
  *
  */
 
-#define _VERSION     "0.0.18"
-#define VERSION_DATE "18.11.2016"
+#define _VERSION     "0.0.19"
+#define VERSION_DATE "25.11.2016"
 
 #ifdef GIT_REV
 #  define VERSION _VERSION "-GIT" GIT_REV
@@ -16,6 +16,9 @@
 
 /*
  * ------------------------------------
+
+2016-11-25: Version 0.0.19
+  - bugfix: fixed compile of test tool
 
 2016-11-18: Version 0.0.18
   - change: adjust of player recover
