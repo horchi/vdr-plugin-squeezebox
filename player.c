@@ -58,7 +58,7 @@ void cSqueezePlayer::Action()
 
 int cSqueezePlayer::startPlayer()
 {
-   int status;
+   int status = 0;
    FILE* out;
    char buf[1024] = "";
    int fd[2];
@@ -132,7 +132,11 @@ int cSqueezePlayer::startPlayer()
       std::string tmp;
 
       for (int i = 0; i < argc; i++)
-         tmp += " " + std::string(argv[i]);
+      {
+         if (tmp.length())
+            tmp += " ";
+         tmp += std::string(argv[i]);
+      }
 
       tell(eloAlways, "Starting player with '%s", tmp.c_str());
 
@@ -178,7 +182,7 @@ int cSqueezePlayer::startPlayer()
    close(wrfd[1]);   // Close the writing end of the stdout pipe
 
    pid = 0;
-   tell(eloAlways, "%s exited with %d\n", cfg.squeezeCmd, status);
+   tell(eloAlways, "%s exited with %d\n", cfg.squeezeCmd, WEXITSTATUS(status));
 
    return 0;
 }
