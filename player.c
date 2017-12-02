@@ -21,7 +21,7 @@
 // Squeeze Player
 //***************************************************************************
 
-cSqueezePlayer::cSqueezePlayer() 
+cSqueezePlayer::cSqueezePlayer()
    : cPlayer(pmAudioOnlyBlack)    // pmExtern_THIS_SHOULD_BE_AVOIDED) // pmAudioOnly)
 {
    running = no;
@@ -35,14 +35,14 @@ cSqueezePlayer::~cSqueezePlayer()
 
 void cSqueezePlayer::Activate(bool on)
 {
-   if (on) 
+   if (on)
       Start();
-   else 
+   else
       Stop();
 }
 
 void cSqueezePlayer::Stop()
-{   
+{
    stopPlayer();
    Cancel(3);             // wait up to 3 seconds for thread was stopping
 }
@@ -85,7 +85,7 @@ int cSqueezePlayer::startPlayer()
       tell(eloAlways, "fork failed with %s\n", strerror(errno));
       return -1;
    }
-   
+
    if (pid == 0)     // child code
    {
       char* argv[30]; memset(argv, 0, sizeof(argv));
@@ -94,7 +94,7 @@ int cSqueezePlayer::startPlayer()
       dup2(fd[1], STDERR_FILENO);   // Redirect stderr into writing end of pipe
       dup2(fd[1], STDOUT_FILENO);   // Redirect stdout into writing end of pipe
       dup2(wrfd[0], STDIN_FILENO);  // Redirect reading end of pipe into stdin
-     
+
       // Now that we have copies where needed, we can close all the child's other references
       // to the pipes.
 
@@ -102,13 +102,13 @@ int cSqueezePlayer::startPlayer()
       close(fd[1]);
       close(wrfd[0]);
       close(wrfd[1]);
-      
+
       // create argument array
 
       argv[argc++] = strdup(cfg.squeezeCmd);
       argv[argc++] = strdup("-s");
       argv[argc++] = strdup(cfg.lmcHost);
-      argv[argc++] = strdup("-m"); 
+      argv[argc++] = strdup("-m");
       argv[argc++] = strdup(cfg.mac);
       argv[argc++] = strdup("-n");
       argv[argc++] = strdup(cfg.playerName);
@@ -124,18 +124,18 @@ int cSqueezePlayer::startPlayer()
          argv[argc++] = strdup("-a");
          argv[argc++] = strdup(cfg.alsaOptions);
       }
-      
+
       argv[argc] = 0;
-      
+
       // start player ..
-      
+
       std::string tmp;
 
       for (int i = 0; i < argc; i++)
          tmp += " " + std::string(argv[i]);
 
       tell(eloAlways, "Starting player with '%s", tmp.c_str());
- 
+
       execv(cfg.squeezeCmd, argv);
 
       tell(eloAlways, "Process squeezelite ended unexpectedly, reason was '%s'\n", strerror(errno));
@@ -147,12 +147,12 @@ int cSqueezePlayer::startPlayer()
 
       return -1;
    }
-   
+
    // parent code
 
    close(fd[1]);     // Don't need writing end of the stderr pipe in parent.
    close(wrfd[0]);   // Don't need the reading end of the stdin pipe in the parent
-   
+
    // take a breath to give squeezelite time to initalize
 
    usleep(500000);
@@ -160,9 +160,9 @@ int cSqueezePlayer::startPlayer()
    running = yes;
 
    out = fdopen(fd[0], "r");
-      
-   // Wait for the child to quit 
-   
+
+   // Wait for the child to quit
+
    while (waitpid(pid, &status, WNOHANG) == 0)
    {
       while (fgets(buf, sizeof(buf), out))
@@ -170,7 +170,7 @@ int cSqueezePlayer::startPlayer()
          buf[strlen(buf)-1] = 0;
          tell(eloAlways, "[squeezelite] %s\n", buf);
       }
-      
+
       usleep(10000);
    }
 
@@ -203,7 +203,7 @@ int cSqueezePlayer::stopPlayer()
 
       if (kill(pid, 0) != 0)
          tell(eloAlways, "Stopping process '%s' failed, error was '%s'", cfg.squeezeCmd, strerror(errno));
-      else 
+      else
          pid = 0;
    }
 

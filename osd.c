@@ -308,6 +308,7 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
    if (!(pixmap[pmBack] = osd->CreatePixmap(1, cRect(x, y, width, height))))
    {
       cPixmap::Unlock();
+      tell(eloAlways, "Error: osd->CreatePixmap(%d,%d,%d,%d) failed", x, y, width, height);
       return fail;
    }
 
