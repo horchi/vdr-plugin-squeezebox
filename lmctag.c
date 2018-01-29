@@ -41,6 +41,8 @@ const char* LmcTag::tags[] =
    "mixer bass",	         // Only for SliMP3 and Squeezebox1 players.
    "mixer pitch",	         // Only for Squeezebox1 players.
 
+   "digital_volume_control",
+
    "playlist repeat",
    "playlist shuffle",
    "playlist mode",
@@ -106,15 +108,15 @@ int LmcTag::toTag(const char* name, int track)
 {
    if (isEmpty(name))
       return tUnknown;
-   
+
    for (int i = track ? tStartOfTrackTags+1 : 0; i < tCount; i++)
    {
       if (strcmp(tags[i], name) == 0)
          return i;
    }
-   
+
    tell(eloAlways, "Info: Ignoring unexpected tag '%s'", name);
-   
+
    return tUnknown;
 }
 
@@ -134,7 +136,7 @@ int LmcTag::set(const char* data)
 {
    if (!data)
       return fail;
-   
+
    free(buffer);
    buffer = strdup(data);
    pos = buffer;
@@ -183,7 +185,7 @@ int LmcTag::getNext(char* name, char* value, unsigned short max)
 
       strcpy(name, token);
    }
-   
+
    return status;
 }
 
