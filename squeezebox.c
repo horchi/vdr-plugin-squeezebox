@@ -27,7 +27,7 @@ class cSqueezeControl : public cControl
 
       virtual int init();
 
-      virtual void Hide() { osdThread->hide(); };
+      virtual void Hide() { if (osdThread) osdThread->hide(); };
       virtual cOsdObject* GetInfo() { return 0; }
       virtual eOSState ProcessKey(eKeys key);
 
