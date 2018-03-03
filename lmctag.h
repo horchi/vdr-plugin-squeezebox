@@ -58,7 +58,7 @@ class LmcTag
          tMixerTreble,
          tMixerBass,
          tMixerPitch,
-         
+
          tPlaylistRepeat,
          tPlaylistShuffle,
          tPlaylistMode,
@@ -87,7 +87,7 @@ class LmcTag
          tAlbum,
          tYear,
          tUrl,
-         
+
          // tags of list range queries like 'genre 0 10'
 
          tItemCount,
@@ -130,7 +130,7 @@ class LmcTag
       static const char* tags[];
       static int toTag(const char* name, int track = no);
       static const char* toName(int tag, int track = no);
-      static int isValid(int tag) { return (tag > tUnknown && tag < tCount); } 
+      static int isValid(int tag) { return (tag > tUnknown && tag < tCount); }
 
       LmcTag(LmcCom* l)
       {

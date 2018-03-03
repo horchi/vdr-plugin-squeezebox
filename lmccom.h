@@ -16,6 +16,7 @@
 using std::vector;
 
 #include "lib/tcpchannel.h"
+#include "service.h"
 
 #ifdef VDR_PLUGIN
 #  include <vdr/thread.h>
@@ -35,7 +36,7 @@ using std::vector;
 class LmcCom : public TcpChannel
 {
    public:
-      
+
       enum RangeQueryType
       {
          rqtUnknown = na,
@@ -80,60 +81,14 @@ class LmcCom : public TcpChannel
          ifoPlayer
       };
 
-      struct PlayerState
-      {
-         PlayerState() { memset(this, 0, sizeof(PlayerState)); }
-
-         uint64_t updatedAt;
-
-         char mode[20+TB];
-         char version[50+TB];
-         int volume;
-         int muted;
-         int trackTime;             // playtime of the current song
-
-         // playlist state
-
-         char plName[300+TB];
-         int plIndex;
-         int plCount;
-         int plShuffle;
-         int plRepeat;
-      };
-
-      struct TrackInfo
-      {
-         TrackInfo() { memset(this, 0, sizeof(TrackInfo)); }
-
-         uint64_t updatedAt;
-
-         char genre[100+TB];
-         char album[100+TB];
-         char artist[100+TB];
-         char title[200+TB];
-         char artworkTrackId[500+TB];
-         char artworkurl[500+TB];
-         char remoteTitle[500+TB];
-         char contentType[100+TB];
-         char lyrics[10000+TB];
-
-         unsigned int bitrate;
-         unsigned short remote;
-         unsigned int year;
-
-         int index;             // index in current playlist
-         int id;                // track ID
-         int duration;
-      };
-
       LmcCom(const char* aMac = 0);
       ~LmcCom();
 
-      void setMac(const char* aMac) 
-      { 
-         free(mac); 
-         mac = strdup(aMac); 
-         free(escId); 
+      void setMac(const char* aMac)
+      {
+         free(mac);
+         mac = strdup(aMac);
+         free(escId);
          escId = escape(mac);
       }
 
@@ -146,7 +101,7 @@ class LmcCom : public TcpChannel
       int query(const char* command, char* response, int max);
       int queryInt(const char* command, int& value);
 
-      int queryRange(RangeQueryType queryType, int from, int count, 
+      int queryRange(RangeQueryType queryType, int from, int count,
                      RangeList* list, int& total, const char* special = "", Parameters* pars = 0);
 
       // cover
@@ -179,11 +134,11 @@ class LmcCom : public TcpChannel
       int shuffle()        { return execute("playlist shuffle"); }
       int repeat()         { return execute("playlist repeat"); }
 
-      int scroll(short step) 
-      { 
+      int scroll(short step)
+      {
          char par[50];
-         sprintf(par, "%c%d", step < 0 ? '-' : '+', abs(step));
-         return execute("time", par); 
+         sprintf(par, "%c%d", step < 0 ? '-' : '+', (int)abs(step));
+         return execute("time", par);
       }
 
       const char* getLastQueryTitle() { return queryTitle ? queryTitle : ""; }
@@ -192,31 +147,31 @@ class LmcCom : public TcpChannel
       int prevTrack()      { return execute("playlist index", "-1"); }
 
       int track(unsigned short index)
-      { 
+      {
          char par[50];
          sprintf(par, "%d", index);
          return execute("playlist index", par);
       }
 
       int loadAlbum(const char* genre = "*", const char* artist = "*", const char* album = "*")
-      { 
+      {
          return ctrlAlbum("loadalbum", genre, artist, album);
       }
 
       int appendAlbum(const char* genre = "*", const char* artist = "*", const char* album = "*")
-      { 
+      {
          return ctrlAlbum("addalbum", genre, artist, album);
       }
 
       int ctrlAlbum(const char* command, const char* genre = "*", const char* artist = "*", const char* album = "*")
-      { 
+      {
          int status;
          char *a = 0, *g = 0, *l = 0;
          char* cmd;
 
-         asprintf(&cmd, "playlist %s %s %s %s", command, 
-                  *genre == '*' ? genre : g = escape(genre), 
-                  *artist == '*' ? artist : a = escape(artist), 
+         asprintf(&cmd, "playlist %s %s %s %s", command,
+                  *genre == '*' ? genre : g = escape(genre),
+                  *artist == '*' ? artist : a = escape(artist),
                   *album == '*' ? album : l = escape(album));
 
          status = execute(cmd);
@@ -225,7 +180,7 @@ class LmcCom : public TcpChannel
       }
 
       int loadPlaylist(const char* playlist)
-      { 
+      {
          char par[500];
          Parameters pars;
 
@@ -237,7 +192,7 @@ class LmcCom : public TcpChannel
       }
 
       int appendPlaylist(const char* playlist)
-      { 
+      {
          char par[500];
          Parameters pars;
 
@@ -252,11 +207,11 @@ class LmcCom : public TcpChannel
 
       int update(int stateOnly = no);
 
-      TrackInfo* getCurrentTrack() 
-      { 
+      TrackInfo* getCurrentTrack()
+      {
          if (playerState.plIndex >= 0 && playerState.plIndex < (int)tracks.size())
             return &tracks.at(playerState.plIndex);
-         
+
          return &dummyTrack;
       }
 
@@ -306,4 +261,3 @@ class LmcCom : public TcpChannel
 
 //***************************************************************************
 #endif //  __LMCCOM_H
-

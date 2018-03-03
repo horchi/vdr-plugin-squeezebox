@@ -49,7 +49,7 @@ ifdef DEBUG
   CFLAGS += -ggdb -O0
 endif
 
-### The plugin config/resource directory 
+### The plugin config/resource directory
 
 export CFGDIR = $(call PKGCFG,configdir)/plugins/$(PLUGIN)/
 export RESDIR = $(call PKGCFG,resdir)/plugins/$(PLUGIN)/
@@ -87,7 +87,7 @@ DEFINES += -DVDR_PLUGIN -DPLUGIN_NAME_I18N='"$(PLUGIN)"'
 
 ### The object files (add further files here):
 
-OBJS = $(PLUGIN).o lmccom.o osd.o menu.o config.o player.o helpers.o \
+OBJS = $(PLUGIN).o lmccom.o osd2web.o osd.o menu.o config.o player.o helpers.o \
      lmctag.o imgtools.o lib/common.o lib/tcpchannel.o lib/curl.o
 
 ifdef GIT_REV
@@ -169,7 +169,7 @@ tt: test.c lmccom.c lib/tcpchannel.c lib/common.c
 	$(CXX) $(CXXFLAGS) test.c lmctag.c lmccom.c lib/tcpchannel.c lib/common.c lib/curl.c $(LIBS) -o tt
 
 cppchk:
-	cppcheck --template="{file}:{line}:{severity}:{message}" --quiet --force *.c *.h 
+	cppcheck --template="{file}:{line}:{severity}:{message}" --quiet --force *.c *.h
 
 # ------------------------------------------------------
 # Git / Versioning / Tagging
@@ -204,4 +204,3 @@ update:
 	git pull
 	@make clean install
 	restart vdr
-

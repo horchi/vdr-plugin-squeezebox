@@ -5,7 +5,6 @@
  *
  */
 
-#include "lmccom.h"
 #include "squeezebox.h"
 #include "config.h"
 #include "osd.h"

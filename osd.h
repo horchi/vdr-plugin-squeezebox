@@ -9,7 +9,9 @@
 #define __SQUEZZEOSD_H
 
 #include <vdr/thread.h>
+#include <vdr/plugin.h>
 
+#include "lmccom.h"
 #include "imgtools.h"
 #include "menu.h"
 
@@ -35,7 +37,7 @@ class cSqueezeOsd : public cThread
 
       int init();
       int exit();
-   
+
       void view();
       void hide();
       void Action();
@@ -55,7 +57,7 @@ class cSqueezeOsd : public cThread
            menu->setVisibleItems(visibleMenuItems);
            forceMenuDraw = yes;
          }
-         
+
          return done;
       }
 
@@ -63,9 +65,15 @@ class cSqueezeOsd : public cThread
 
    protected:
 
+      // osd2web
+
+      int sendInfoBox(TrackInfo* currentTrack);
+
+      // draw
+
       int drawOsd();
       int drawCover();
-      int drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track, int x, int y, int size);
+      int drawTrackCover(cPixmap* pixmap, TrackInfo* track, int x, int y, int size);
 
       int drawInfoBox();
       int drawProgress(int y = na);
@@ -76,33 +84,33 @@ class cSqueezeOsd : public cThread
       int drawMenu();
       int scrollLyrics();
 
-      int createBox(cPixmap* pixmap[], int x, int y, int width, int height, 
+      int createBox(cPixmap* pixmap[], int x, int y, int width, int height,
                     tColor color, tColor blend, int radius);
 
       int drawSymbol(cPixmap* pixmap, const char* name, int& x, int y, int width = na, int height = na);
 
-      const char* Red() 
+      const char* Red()
       {
-         if (menu) 
+         if (menu)
             return menu->getActive()->Red();
 
          return buttonLevel == 0 ? tr("Menu") : tr("Shuffle");
       }
-      const char* Green() 
+      const char* Green()
       {
-         if (menu) 
+         if (menu)
             return menu->getActive()->Green();
          return buttonLevel == 0 ? tr("<<") : tr("Repeat");
       }
-      const char* Yellow() 
+      const char* Yellow()
       {
-         if (menu) 
+         if (menu)
             return menu->getActive()->Yellow();
          return  buttonLevel == 0 ? tr(">>") : tr("Vol-");
       }
-      const char* Blue() 
+      const char* Blue()
       {
-         if (menu) 
+         if (menu)
             return menu->getActive()->Blue();
          return buttonLevel == 0 ? (currentState->plCount ? tr("Clear") : tr("Random")) : tr("Vol+");
       }
@@ -135,7 +143,8 @@ class cSqueezeOsd : public cThread
       int border;                 // border width in pixel
 
       cImageMagickWrapper* imgLoader;
-      LmcCom::PlayerState* currentState;
+      PlayerState* currentState;
+      cPlugin* osd2web;
 
       cPixmap* pixmapCover[pmCount];
       cPixmap* pixmapInfo[pmCount];

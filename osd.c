@@ -103,6 +103,8 @@ cSqueezeOsd::cSqueezeOsd(const char* aResDir)
    clrBoxBlend = 0xFF0000AA;
    clrTextDark = 0xFF808080;
 
+   osd2web = 0;
+
    lmc = new LmcCom(cfg.mac);
    imgLoader = new cImageMagickWrapper();
 
@@ -166,7 +168,7 @@ int cSqueezeOsd::init()
 
       if (osd->CanHandleAreas(&control, 1) != oeOk)
       {
-         tell(eloAlways, "Can't open osd, CanHandleAreas()");
+         tell(eloAlways, "Can't open osd, CanHandleAreas() failed");
          return fail;
       }
 
@@ -457,6 +459,7 @@ void cSqueezeOsd::Action()
    int fullDraw;
    uint64_t lastDraw = 0;
 
+   osd2web = cPluginManager::GetPlugin("osd2web");
    loopActive = yes;
    currentState = lmc->getPlayerState();
 
@@ -513,7 +516,7 @@ void cSqueezeOsd::Action()
 
       if (osd && cTimeMs::Now() >= nextScrollStep)
       {
-         LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
+         TrackInfo* currentTrack = lmc->getCurrentTrack();
 
          if (!isEmpty(currentTrack->lyrics))
          {
@@ -673,7 +676,9 @@ int cSqueezeOsd::drawMenu()
 
 int cSqueezeOsd::drawInfoBox()
 {
-   LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
+   TrackInfo* currentTrack = lmc->getCurrentTrack();
+
+   sendInfoBox(currentTrack);
 
    // fill info box
 
@@ -750,7 +755,7 @@ int cSqueezeOsd::drawProgress(int y)
 
    int time;
    int barHeight = fontStd->Height();
-   LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
+   TrackInfo* currentTrack = lmc->getCurrentTrack();
    const cRect rect = pixmapInfo[pmText]->ViewPort();
 
    if (y != na)  yLast = y;
@@ -1044,7 +1049,7 @@ int cSqueezeOsd::drawButtons()
 // Draw Cover
 //***************************************************************************
 
-int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
+int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, TrackInfo* track,
                                 int x, int y, int size)
 {
    cImage* image = 0;
@@ -1099,7 +1104,7 @@ int cSqueezeOsd::drawTrackCover(cPixmap* pixmap, LmcCom::TrackInfo* track,
 int cSqueezeOsd::drawCover()
 {
    MemoryStruct cover;
-   LmcCom::TrackInfo* currentTrack = lmc->getCurrentTrack();
+   TrackInfo* currentTrack = lmc->getCurrentTrack();
    std::string hash;
    cImage* image = 0;
 

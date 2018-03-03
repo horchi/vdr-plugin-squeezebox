@@ -5,8 +5,8 @@
  *
  */
 
-#define _VERSION     "0.0.20"
-#define VERSION_DATE "24.02.2017"
+#define _VERSION     "0.0.21"
+#define VERSION_DATE "03.03.2018"
 
 #ifdef GIT_REV
 #  define VERSION _VERSION "-GIT" GIT_REV
@@ -17,7 +17,10 @@
 /*
  * ------------------------------------
 
-2017-02-24: Version 0.0.20
+2018-03-03: Version 0.0.21
+  - added: interface to osd2web
+
+2018-02-24: Version 0.0.20
   - change: minor change
 
 2016-11-25: Version 0.0.19
