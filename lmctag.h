@@ -59,6 +59,8 @@ class LmcTag
          tMixerBass,
          tMixerPitch,
 
+         tDigitalVolumeControl,
+
          tPlaylistRepeat,
          tPlaylistShuffle,
          tPlaylistMode,

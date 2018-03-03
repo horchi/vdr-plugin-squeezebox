@@ -137,7 +137,9 @@ class LmcCom : public TcpChannel
       int scroll(short step)
       {
          char par[50];
+
          sprintf(par, "%c%d", step < 0 ? '-' : '+', (int)abs(step));
+
          return execute("time", par);
       }
 
