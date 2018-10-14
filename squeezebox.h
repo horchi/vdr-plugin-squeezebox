@@ -24,19 +24,19 @@ static const char *MAINMENUENTRY  = "Squeezebox";
 // cSqueezePlayer
 //***************************************************************************
 
-class cSqueezePlayer : public cPlayer, cThread 
+class cSqueezePlayer : public cPlayer, cThread
 {
    public:
 
-//       enum ePlayModeExt 
-//       { 
+//       enum ePlayModeExt
+//       {
 //          pmExternAudioOnly_THIS_SHOULD_BE_AVOIDED
 //          pmExternAudioOnlyBlack_THIS_SHOULD_BE_AVOIDED
 //       };
 
       cSqueezePlayer();
       virtual ~cSqueezePlayer();
-      
+
       virtual void Stop();
 
       int isRunning() { return running; }
@@ -47,16 +47,17 @@ class cSqueezePlayer : public cPlayer, cThread
       virtual void Action();
       virtual int startPlayer();
       virtual int stopPlayer();
-      
+
+      cPlugin* seduatmo = 0;
       int running;
       pid_t pid;
 };
 
 //***************************************************************************
-// Plugin 
+// Plugin
 //***************************************************************************
 
-class cPluginSqueezebox : public cPlugin 
+class cPluginSqueezebox : public cPlugin
 {
    public:
 

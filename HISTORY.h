@@ -3,10 +3,12 @@
  * squeezebox Plugin - Revision History
  * -----------------------------------
  *
+ *  (c) 2014-2018 Jörg Wendel
+ *
  */
 
-#define _VERSION     "0.0.22"
-#define VERSION_DATE "03.03.2018"
+#define _VERSION     "0.0.23"
+#define VERSION_DATE "14.10.2018"
 
 #ifdef GIT_REV
 #  define VERSION _VERSION "-GIT" GIT_REV
@@ -16,6 +18,9 @@
 
 /*
  * ------------------------------------
+
+2018-10-14: Version 0.0.23
+  - added: Changing sedu mode during playback to 'wheel' if seduatmo plugin is loaded
 
 2018-03-03: Version 0.0.22
   - change: git merge

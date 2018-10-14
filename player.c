@@ -26,6 +26,7 @@ cSqueezePlayer::cSqueezePlayer()
 {
    running = no;
    pid = 0;
+   seduatmo = 0;
 }
 
 cSqueezePlayer::~cSqueezePlayer()
@@ -43,6 +44,8 @@ void cSqueezePlayer::Activate(bool on)
 
 void cSqueezePlayer::Stop()
 {
+   seduatmo->Service("SeduAtmo-ModeService-v1.0", (void*)"atmo");
+
    stopPlayer();
    Cancel(3);             // wait up to 3 seconds for thread was stopping
 }
@@ -70,6 +73,14 @@ int cSqueezePlayer::startPlayer()
       stopPlayer();
       sleep(2);   // sometimes pulseaudio need some seconds
    }
+
+   if (!seduatmo)
+      seduatmo = cPluginManager::GetPlugin("seduatmo");
+
+   seduatmo->Service("SeduAtmo-ModeService-v1.0", (void*)"wheel");
+
+   tell(eloAlways, "Wating for softhddevice detached");
+   sleep(5);
 
    res += pipe(fd);
    res += pipe(wrfd);
@@ -182,6 +193,7 @@ int cSqueezePlayer::startPlayer()
    close(wrfd[1]);   // Close the writing end of the stdout pipe
 
    pid = 0;
+   running = no;
    tell(eloAlways, "%s exited with %d\n", cfg.squeezeCmd, WEXITSTATUS(status));
 
    return 0;
