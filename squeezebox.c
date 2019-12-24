@@ -320,6 +320,7 @@ bool cPluginSqueezebox::SetupParse(const char* Name, const char* Value)
    else if (!strcasecmp(Name, "lmcHttpPort"))  cfg.lmcHttpPort = atoi(Value);
    else if (!strcasecmp(Name, "shadeTime"))    cfg.shadeTime = atoi(Value);
    else if (!strcasecmp(Name, "shadeLevel"))   cfg.shadeLevel = atoi(Value);
+   else if (!strcasecmp(Name, "rounded"))      cfg.rounded = atoi(Value);
 
    else if (!strcasecmp(Name, "lmcHost"))      { free(cfg.lmcHost);     cfg.lmcHost = strdup(Value); }
    else if (!strcasecmp(Name, "squeezeCmd"))   { free(cfg.squeezeCmd);  cfg.squeezeCmd = strdup(Value); }

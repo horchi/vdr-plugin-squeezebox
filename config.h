@@ -8,7 +8,7 @@
 #include <vdr/menuitems.h>
 
 //***************************************************************************
-// 
+//
 //***************************************************************************
 
 class cSqueezeConfig
@@ -33,6 +33,7 @@ class cSqueezeConfig
       int logLevel;
       int shadeTime;
       int shadeLevel;
+      int rounded = no;
 };
 
 extern cSqueezeConfig cfg;
@@ -41,12 +42,12 @@ extern cSqueezeConfig cfg;
 // Plugin Setup Menu
 //***************************************************************************
 
-class cMenuSqueezeSetup : public cMenuSetupPage 
+class cMenuSqueezeSetup : public cMenuSetupPage
 {
    public:
-      
+
       cMenuSqueezeSetup();
-      
+
    protected:
 
       virtual eOSState ProcessKey(eKeys Key);

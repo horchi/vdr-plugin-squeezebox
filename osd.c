@@ -315,9 +315,13 @@ int cSqueezeOsd::createBox(cPixmap* pixmap[], int x, int y, int width, int heigh
    }
 
    pixmap[pmBack]->Fill(color);
-   DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, true);
-   DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, false);
-   DrawRoundedCorners(pixmap[pmBack], radius, 0, 0, width, height);
+
+   if (cfg.rounded)
+   {
+      DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, true);
+      DrawBlendedBackground(pixmap[pmBack], 0, width, color, blend, false);
+      DrawRoundedCorners(pixmap[pmBack], radius, 0, 0, width, height);
+   }
 
    // front/text pixmap
 
@@ -1108,8 +1112,8 @@ int cSqueezeOsd::drawCover()
    std::string hash;
    cImage* image = 0;
 
-   int y = pixmapCover[pmText]->ViewPort().Height() / 6.0;
-   int imgHW = pixmapCover[pmText]->ViewPort().Height() / 6.0 * 4.0;
+   int y = 0; // pixmapCover[pmText]->ViewPort().Height() / 4.0;
+   int imgHW = pixmapCover[pmText]->ViewPort().Height() / 4.0 * 4.0;
 
    if (!osd)
       return fail;
@@ -1289,10 +1293,10 @@ int cSqueezeOsd::drawSymbol(cPixmap* pixmap, const char* name, int& x, int y,
       cPixmap::Unlock();
    }
 
+   x += image->Width();
+
    free(path);
    delete image;
-
-   x += image->Width();
 
    return done;
 }

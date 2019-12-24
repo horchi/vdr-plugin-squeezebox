@@ -46,7 +46,7 @@ cSqueezeConfig::~cSqueezeConfig()
 // Setup Menu
 //***************************************************************************
 
-cMenuSqueezeSetup::cMenuSqueezeSetup() 
+cMenuSqueezeSetup::cMenuSqueezeSetup()
 {
    strcpy(lmcHost, cfg.lmcHost);
    strcpy(squeezeCmd, cfg.squeezeCmd);
@@ -54,12 +54,12 @@ cMenuSqueezeSetup::cMenuSqueezeSetup()
    strcpy(audioDevice, cfg.audioDevice);
    strcpy(alsaOptions, cfg.alsaOptions);
    strcpy(mac, cfg.mac);
-   
+
    Setup();
 }
 
 void cMenuSqueezeSetup::Setup()
-{  
+{
    Clear();
 
    Add(new cMenuEditStrItem(tr("LMS Host"), lmcHost, sizeof(lmcHost), tr(FileNameChars)));
@@ -74,6 +74,7 @@ void cMenuSqueezeSetup::Setup()
 
    Add(new cMenuEditIntItem(tr("Shade Time [s]"), &cfg.shadeTime, 0, 3600));
    Add(new cMenuEditIntItem(tr("Shade Level [%]"), &cfg.shadeLevel, 0, 100));
+   Add(new cMenuEditBoolItem(tr("Rounded OSD"), &cfg.rounded));
 
    Add(new cMenuEditIntItem(tr("Log level"), &cfg.logLevel, 0, 4));
 
@@ -81,15 +82,15 @@ void cMenuSqueezeSetup::Setup()
    Display();
 }
 
-eOSState cMenuSqueezeSetup::ProcessKey(eKeys Key) 
+eOSState cMenuSqueezeSetup::ProcessKey(eKeys Key)
 {
    eOSState state = cMenuSetupPage::ProcessKey(Key);
-   
-   switch (state) 
+
+   switch (state)
    {
       case osContinue:
       {
-         if (NORMALKEY(Key) == kUp || NORMALKEY(Key) == kDown) 
+         if (NORMALKEY(Key) == kUp || NORMALKEY(Key) == kDown)
          {
             cOsdItem* item = Get(Current());
 
@@ -99,7 +100,7 @@ eOSState cMenuSqueezeSetup::ProcessKey(eKeys Key)
 
          break;
       }
-         
+
       default: break;
    }
 
@@ -108,17 +109,18 @@ eOSState cMenuSqueezeSetup::ProcessKey(eKeys Key)
 
 void cMenuSqueezeSetup::Store(void)
 {
-   free(cfg.lmcHost);     cfg.lmcHost = strdup(lmcHost); 
-   free(cfg.squeezeCmd);  cfg.squeezeCmd = strdup(squeezeCmd);  
-   free(cfg.playerName);  cfg.playerName = strdup(playerName);  
-   free(cfg.mac);         cfg.mac = strdup(mac);   
-   free(cfg.audioDevice); cfg.audioDevice = strdup(audioDevice); 
-   free(cfg.alsaOptions); cfg.alsaOptions = strdup(alsaOptions); 
+   free(cfg.lmcHost);     cfg.lmcHost = strdup(lmcHost);
+   free(cfg.squeezeCmd);  cfg.squeezeCmd = strdup(squeezeCmd);
+   free(cfg.playerName);  cfg.playerName = strdup(playerName);
+   free(cfg.mac);         cfg.mac = strdup(mac);
+   free(cfg.audioDevice); cfg.audioDevice = strdup(audioDevice);
+   free(cfg.alsaOptions); cfg.alsaOptions = strdup(alsaOptions);
 
    SetupStore("logLevel", cfg.logLevel);
    SetupStore("lmcHost", cfg.lmcHost);
    SetupStore("lmcPort", cfg.lmcPort);
    SetupStore("lmcHttpPort", cfg.lmcHttpPort);
+   SetupStore("rounded", cfg.rounded);
    SetupStore("shadeTime", cfg.shadeTime);
    SetupStore("shadeLevel", cfg.shadeLevel);
    SetupStore("squeezeCmd", cfg.squeezeCmd);

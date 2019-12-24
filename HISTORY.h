@@ -7,8 +7,8 @@
  *
  */
 
-#define _VERSION     "0.0.23"
-#define VERSION_DATE "14.10.2018"
+#define _VERSION     "0.0.24"
+#define VERSION_DATE "24.12.2019"
 
 #ifdef GIT_REV
 #  define VERSION _VERSION "-GIT" GIT_REV
@@ -18,6 +18,9 @@
 
 /*
  * ------------------------------------
+
+2019-12-24: Version 0.0.24
+  - added: Option for 'flat' view (not rounded)
 
 2018-10-14: Version 0.0.23
   - added: Changing sedu mode during playback to 'wheel' if seduatmo plugin is loaded

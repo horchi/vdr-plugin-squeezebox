@@ -169,7 +169,7 @@ tt: test.c lmccom.c lib/tcpchannel.c lib/common.c
 	$(CXX) $(CXXFLAGS) test.c lmctag.c lmccom.c lib/tcpchannel.c lib/common.c lib/curl.c $(LIBS) -o tt
 
 cppchk:
-	cppcheck --template="{file}:{line}:{severity}:{message}" --quiet --force *.c *.h
+	cppcheck --language=c++ --template="{file}:{line}:{severity}:{message}" --quiet --force *.c *.h
 
 # ------------------------------------------------------
 # Git / Versioning / Tagging
