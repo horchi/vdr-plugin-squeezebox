@@ -7,7 +7,7 @@
  *
  */
 
-#define _VERSION     "0.0.24"
+#define _VERSION     "0.0.25"
 #define VERSION_DATE "24.12.2019"
 
 #ifdef GIT_REV
@@ -18,6 +18,9 @@
 
 /*
  * ------------------------------------
+
+2019-12-24: Version 0.0.25
+  - added: Minor color fix of selected item
 
 2019-12-24: Version 0.0.24
   - added: Option for 'flat' view (not rounded)

@@ -859,6 +859,7 @@ int cSqueezeOsd::drawPlaylist()
       {
          int ay = pixmapPlaylist[pmBack]->ViewPort().Y() + y;
 
+         color = clrCyan;
          pixmapPlCurrent[pmBack]->SetViewPort(cRect(pixmapPlCurrent[pmBack]->ViewPort().X(), ay,
                                                     pixmapPlCurrent[pmBack]->ViewPort().Width(),
                                                     pixmapPlCurrent[pmBack]->ViewPort().Height()));
