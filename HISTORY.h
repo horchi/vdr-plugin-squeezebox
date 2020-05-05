@@ -7,8 +7,8 @@
  *
  */
 
-#define _VERSION     "0.0.25"
-#define VERSION_DATE "24.12.2019"
+#define _VERSION     "0.0.26"
+#define VERSION_DATE "05.05.2020"
 
 #ifdef GIT_REV
 #  define VERSION _VERSION "-GIT" GIT_REV
@@ -18,6 +18,9 @@
 
 /*
  * ------------------------------------
+
+2020-05-05: Version 0.0.26
+  - bugfix: Fixed crash without seduatmo plugin (patch by Alexander Grothe)
 
 2019-12-24: Version 0.0.25
   - added: Minor color fix of selected item

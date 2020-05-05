@@ -44,7 +44,8 @@ void cSqueezePlayer::Activate(bool on)
 
 void cSqueezePlayer::Stop()
 {
-   seduatmo->Service("SeduAtmo-ModeService-v1.0", (void*)"atmo");
+   if (seduatmo)
+      seduatmo->Service("SeduAtmo-ModeService-v1.0", (void*)"atmo");
 
    stopPlayer();
    Cancel(3);             // wait up to 3 seconds for thread was stopping
@@ -77,7 +78,8 @@ int cSqueezePlayer::startPlayer()
    if (!seduatmo)
       seduatmo = cPluginManager::GetPlugin("seduatmo");
 
-   seduatmo->Service("SeduAtmo-ModeService-v1.0", (void*)"wheel");
+   if (seduatmo)
+      seduatmo->Service("SeduAtmo-ModeService-v1.0", (void*)"wheel");
 
    tell(eloAlways, "Wating for softhddevice detached");
    sleep(5);
